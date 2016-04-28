@@ -12,6 +12,8 @@ class Configuration(object):
     """
     def __init__(self, config_file):
         #TODO(mtakaki|2016-04-26): Needs validation if the config is correct.
+        #TODO(mtakaki|2016-04-28): Accept overriding settings using environment
+        # variables so we have a more docker-friendly approach.
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
         self.expectations = [Expectaction.create(expectation) for expectation
