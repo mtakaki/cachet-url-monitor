@@ -1,0 +1,14 @@
+endpoint:
+  url: http://www.google.com
+  method: GET
+  expectation:
+    - type: HTTP_STATUS
+      status: 200
+    - type: LATENCY
+      threshold: 80
+cachet:
+  api_url: http://status.cachethq.io/api/v1/
+  token: my_token
+  component_id: 1
+  metric_id: 1
+frequency: 30
