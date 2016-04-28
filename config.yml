@@ -5,7 +5,7 @@ endpoint:
     - type: HTTP_STATUS
       status: 200
     - type: LATENCY
-      threshold: 80
+      threshold: 1
 cachet:
   api_url: http://status.cachethq.io/api/v1/
   token: my_token
