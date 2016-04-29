@@ -5,3 +5,6 @@ share/
 .Python
 *.swp
 *.pyc
+.cache
+.coverage
+*.egg-info

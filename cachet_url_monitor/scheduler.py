@@ -7,14 +7,21 @@ import time
 
 
 class Agent(object):
+    """Monitor agent that will be constantly verifying if the URL is healthy
+    and updating the component.
+    """
     def __init__(self, configuration):
         self.configuration = configuration
 
     def execute(self):
+        """Will verify the API status and push the status and metrics to the
+        cachet server.
+        """
         self.configuration.evaluate()
         self.configuration.push_status_and_metrics()
 
     def start(self):
+        """Sets up the schedule based on the configuration file."""
         schedule.every(self.configuration.data['frequency']).seconds.do(self.execute)
 
 

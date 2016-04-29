@@ -1,6 +1,7 @@
 endpoint:
-  url: http://www.google.com
+  url: http://localhost:8080/swagger
   method: GET
+  timeout: 0.010
   expectation:
     - type: HTTP_STATUS
       status: 200

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import abc
 import logging
+import re
 import requests
 import timeit
 from yaml import load
@@ -20,10 +21,14 @@ class Configuration(object):
                 in self.data['endpoint']['expectation']]
 
     def evaluate(self):
-        #TODO(mtakaki|2016-04-27): Add support to configurable timeout.
+        """Sends the request to the URL set in the configuration and executes
+        each one of the expectations, one by one. The status will be updated
+        according to the expectation results.
+        """
         try:
             self.request = requests.request(self.data['endpoint']['method'],
-                    self.data['endpoint']['url'])
+                    self.data['endpoint']['url'],
+                    timeout=self.data['endpoint']['timeout'])
         except requests.ConnectionError:
             logging.warning('The URL is unreachable: %s %s' %
                     (self.data['endpoint']['method'],
@@ -39,9 +44,8 @@ class Configuration(object):
             self.status = 3
             return
 
-        # We, by default, assume the API is healthy.
+        # We initially assume the API is healthy.
         self.status = 1
-        self.message = ''
         for expectation in self.expectations:
             status = expectation.get_status(self.request)
 
@@ -66,11 +70,18 @@ class Configuration(object):
                     ' status: [%d]' % (component_request.status_code, self.status))
 
 class Expectaction(object):
+    """Base class for URL result expectations. Any new excpectation should extend
+    this class and the name added to create() method.
+    """
     @staticmethod
     def create(configuration):
+        """Creates a list of expectations based on the configuration types
+        list.
+        """
         expectations = {
                 'HTTP_STATUS': HttpStatus,
-                'LATENCY': Latency
+                'LATENCY': Latency,
+                'REGEX': Regex
                 }
         return expectations.get(configuration['type'])(configuration)
 
@@ -110,4 +121,18 @@ class Latency(Expectaction):
             return 2
 
     def get_message(self, response):
-        return 'Latency above threshold: %d' % (response.elapsed.total_seconds(),)
+        return 'Latency above threshold: %.4f' % (response.elapsed.total_seconds(),)
+
+
+class Regex(Expectaction):
+    def __init__(self, configuration):
+        self.regex = re.compile(configuration['regex'])
+
+    def get_status(self, response):
+        if self.regex.match(response.text):
+            return 1
+        else:
+            return 3
+
+    def get_message(self, response):
+        return 'Regex did not match anything in the body'

@@ -1,5 +1,8 @@
 PyYAML==3.11
 ipython==4.2.0
+mock==2.0.0
 pudb==2016.1
+pytest==2.9.1
+pytest-cov==2.2.1
 requests==2.9.1
 schedule==0.3.2
