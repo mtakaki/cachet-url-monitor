@@ -2,6 +2,7 @@
 import mock
 import unittest
 import sys
+from requests import ConnectionError,HTTPError,Timeout
 sys.modules['requests'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
 
@@ -9,6 +10,9 @@ from cachet_url_monitor.configuration import Configuration
 class ConfigurationTest(unittest.TestCase):
     def setUp(self):
         self.configuration = Configuration('config.yml')
+        sys.modules['requests'].Timeout = Timeout
+        sys.modules['requests'].ConnectionError = ConnectionError
+        sys.modules['requests'].HTTPError = HTTPError
 
     def test_init(self):
         assert len(self.configuration.data) == 3
@@ -28,3 +32,85 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 1
+
+    def test_evaluate_with_failure(self):
+        def total_seconds():
+            return 0.1
+        def request(method, url, timeout=None):
+            response = mock.Mock()
+            response.status_code = 400
+            response.elapsed = mock.Mock()
+            response.elapsed.total_seconds = total_seconds
+            return response
+
+        sys.modules['requests'].request = request
+        self.configuration.evaluate()
+
+        assert self.configuration.status == 3
+
+    def test_evaluate_with_timeout(self):
+        def request(method, url, timeout=None):
+            assert method == 'GET'
+            assert url == 'http://localhost:8080/swagger'
+            assert timeout == 0.010
+
+            raise Timeout()
+
+        sys.modules['requests'].request = request
+        self.configuration.evaluate()
+
+        assert self.configuration.status == 3
+
+    def test_evaluate_with_connection_error(self):
+        def request(method, url, timeout=None):
+            assert method == 'GET'
+            assert url == 'http://localhost:8080/swagger'
+            assert timeout == 0.010
+
+            raise ConnectionError()
+
+        sys.modules['requests'].request = request
+        self.configuration.evaluate()
+
+        assert self.configuration.status == 3
+
+    def test_evaluate_with_http_error(self):
+        def request(method, url, timeout=None):
+            assert method == 'GET'
+            assert url == 'http://localhost:8080/swagger'
+            assert timeout == 0.010
+
+            raise HTTPError()
+
+        sys.modules['requests'].request = request
+        self.configuration.evaluate()
+
+        assert self.configuration.status == 3
+
+    def test_push_status_and_metrics(self):
+        def put(url, params=None, headers=None):
+            assert url == 'http://status.cachethq.io/api/v1//components/1'
+            assert params == {'id': 1, 'status': 1}
+            assert headers == {'X-Cachet-Token': 'my_token'}
+
+            response = mock.Mock()
+            response.status_code = 200
+            return response
+
+        sys.modules['requests'].put = put
+        self.configuration.status = 1
+        self.configuration.push_status_and_metrics()
+
+    def test_push_status_and_metrics_with_failure(self):
+        def put(url, params=None, headers=None):
+            assert url == 'http://status.cachethq.io/api/v1//components/1'
+            assert params == {'id': 1, 'status': 1}
+            assert headers == {'X-Cachet-Token': 'my_token'}
+
+            response = mock.Mock()
+            response.status_code = 300
+            return response
+
+        sys.modules['requests'].put = put
+        self.configuration.status = 1
+        self.configuration.push_status_and_metrics()
