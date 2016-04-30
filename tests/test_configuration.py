@@ -4,8 +4,8 @@ import unittest
 import sys
 from requests import ConnectionError,HTTPError,Timeout
 sys.modules['requests'] = mock.Mock()
+sys.modules['logging'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
-
 
 class ConfigurationTest(unittest.TestCase):
     def setUp(self):
@@ -38,6 +38,7 @@ class ConfigurationTest(unittest.TestCase):
             return 0.1
         def request(method, url, timeout=None):
             response = mock.Mock()
+            # We are expecting a 200 response, so this will fail the expectation.
             response.status_code = 400
             response.elapsed = mock.Mock()
             response.elapsed.total_seconds = total_seconds
@@ -60,6 +61,7 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 3
+        sys.modules['logging'].warning.assert_called_with('Request timed out')
 
     def test_evaluate_with_connection_error(self):
         def request(method, url, timeout=None):
@@ -73,6 +75,8 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 3
+        sys.modules['logging'].warning.assert_called_with(('The URL is '
+            'unreachable: GET http://localhost:8080/swagger'))
 
     def test_evaluate_with_http_error(self):
         def request(method, url, timeout=None):
@@ -86,6 +90,8 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 3
+        sys.modules['logging'].exception.assert_called_with(('Unexpected HTTP '
+            'response'))
 
     def test_push_status_and_metrics(self):
         def put(url, params=None, headers=None):
