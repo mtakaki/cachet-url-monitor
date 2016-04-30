@@ -9,6 +9,11 @@ from cachet_url_monitor.configuration import Configuration
 
 class ConfigurationTest(unittest.TestCase):
     def setUp(self):
+        def getLogger(name):
+            self.mock_logger = mock.Mock()
+            return self.mock_logger
+        sys.modules['logging'].getLogger = getLogger
+
         self.configuration = Configuration('config.yml')
         sys.modules['requests'].Timeout = Timeout
         sys.modules['requests'].ConnectionError = ConnectionError
@@ -61,7 +66,7 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 3
-        sys.modules['logging'].warning.assert_called_with('Request timed out')
+        self.mock_logger.warning.assert_called_with('Request timed out')
 
     def test_evaluate_with_connection_error(self):
         def request(method, url, timeout=None):
@@ -75,7 +80,7 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 3
-        sys.modules['logging'].warning.assert_called_with(('The URL is '
+        self.mock_logger.warning.assert_called_with(('The URL is '
             'unreachable: GET http://localhost:8080/swagger'))
 
     def test_evaluate_with_http_error(self):
@@ -90,7 +95,7 @@ class ConfigurationTest(unittest.TestCase):
         self.configuration.evaluate()
 
         assert self.configuration.status == 3
-        sys.modules['logging'].exception.assert_called_with(('Unexpected HTTP '
+        self.mock_logger.exception.assert_called_with(('Unexpected HTTP '
             'response'))
 
     def test_push_status_and_metrics(self):

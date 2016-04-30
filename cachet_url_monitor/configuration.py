@@ -15,6 +15,7 @@ class Configuration(object):
         #TODO(mtakaki|2016-04-26): Needs validation if the config is correct.
         #TODO(mtakaki|2016-04-28): Accept overriding settings using environment
         # variables so we have a more docker-friendly approach.
+        self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
         self.expectations = [Expectaction.create(expectation) for expectation
@@ -30,17 +31,17 @@ class Configuration(object):
                     self.data['endpoint']['url'],
                     timeout=self.data['endpoint']['timeout'])
         except requests.ConnectionError:
-            logging.warning('The URL is unreachable: %s %s' %
+            self.logger.warning('The URL is unreachable: %s %s' %
                     (self.data['endpoint']['method'],
                         self.data['endpoint']['url']))
             self.status = 3
             return
         except requests.HTTPError:
-            logging.exception('Unexpected HTTP response')
+            self.logger.exception('Unexpected HTTP response')
             self.status = 3
             return
         except requests.Timeout:
-            logging.warning('Request timed out')
+            self.logger.warning('Request timed out')
             self.status = 3
             return
 
@@ -63,10 +64,10 @@ class Configuration(object):
                 params=params, headers=headers)
         if component_request.status_code == 200:
             # Successful update
-            logging.info('Component update: status [%d]' % (self.status,))
+            self.logger.info('Component update: status [%d]' % (self.status,))
         else:
             # Failed to update the API status
-            logging.warning('Component update failed with status [%d]: API'
+            self.logger.warning('Component update failed with status [%d]: API'
                     ' status: [%d]' % (component_request.status_code, self.status))
 
 class Expectaction(object):
