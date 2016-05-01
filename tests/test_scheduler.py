@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+import logging
 import mock
 import unittest
 import sys
 sys.modules['schedule'] = mock.Mock()
-from cachet_url_monitor.scheduler import Agent
+sys.modules['cachet_url_monitor.configuration.Configuration'] = mock.Mock()
+from cachet_url_monitor.scheduler import Agent,Scheduler
 
 
 class AgentTest(unittest.TestCase):
@@ -31,3 +33,17 @@ class AgentTest(unittest.TestCase):
         every.assert_called_with(5)
 
 
+class SchedulerTest(unittest.TestCase):
+    def setUp(self):
+        self.mock_configuration = sys.modules['cachet_url_monitor.configuration.Configuration']
+        self.scheduler = Scheduler('config.yml')
+
+    def test_init(self):
+        #TODO(mtakaki|2016-05-01): We need more assertions in this test.
+        assert self.scheduler.stop == False
+
+    def test_start(self):
+        #TODO(mtakaki|2016-05-01): We need a better way of testing this method.
+        # Leaving it as a placeholder.
+        self.scheduler.stop = True
+        self.scheduler.start()

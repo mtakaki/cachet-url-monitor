@@ -30,11 +30,12 @@ class Scheduler(object):
         self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
         self.configuration = Configuration(config_file)
         self.agent = Agent(self.configuration)
+        self.stop = False
 
     def start(self):
         self.agent.start()
         self.logger.info('Starting monitor agent...')
-        while True:
+        while not self.stop:
             schedule.run_pending()
             time.sleep(self.configuration.data['frequency'])
 
@@ -42,6 +43,8 @@ class Scheduler(object):
 if __name__ == "__main__":
     FORMAT = "%(levelname)9s [%(asctime)-15s] %(name)s - %(message)s"
     logging.basicConfig(format=FORMAT, level=logging.INFO)
+    for handler in logging.root.handlers:
+        handler.addFilter(logging.Filter('cachet_url_monitor'))
 
     if len(sys.argv) <= 1:
         logging.fatal('Missing configuration file argument')

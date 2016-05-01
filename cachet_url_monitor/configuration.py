@@ -20,6 +20,8 @@ class Configuration(object):
         self.data = load(file(self.config_file, 'r'))
         self.expectations = [Expectaction.create(expectation) for expectation
                 in self.data['endpoint']['expectation']]
+        for expectation in self.expectations:
+            self.logger.info('Registered expectation: %s' % (expectation,))
 
     def evaluate(self):
         """Sends the request to the URL set in the configuration and executes
