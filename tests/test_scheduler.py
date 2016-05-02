@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import logging
 import mock
 import unittest
 import sys
@@ -35,11 +34,11 @@ class AgentTest(unittest.TestCase):
 
 class SchedulerTest(unittest.TestCase):
     def setUp(self):
-        self.mock_configuration = sys.modules['cachet_url_monitor.configuration.Configuration']
+        self.mock_configuration = sys.modules[('cachet_url_monitor.configuration'
+            '.Configuration')]
         self.scheduler = Scheduler('config.yml')
 
     def test_init(self):
-        #TODO(mtakaki|2016-05-01): We need more assertions in this test.
         assert self.scheduler.stop == False
 
     def test_start(self):

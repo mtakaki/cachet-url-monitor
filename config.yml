@@ -7,6 +7,8 @@ endpoint:
       status: 200
     - type: LATENCY
       threshold: 1
+    - type: REGEX
+      regex: ".*<body>.*"
 cachet:
   api_url: http://status.cachethq.io/api/v1/
   token: my_token

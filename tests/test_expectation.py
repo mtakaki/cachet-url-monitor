@@ -74,26 +74,26 @@ class HttpStatusTest(unittest.TestCase):
 
 class RegexTest(unittest.TestCase):
     def setUp(self):
-        self.expectation = Regex({'type': 'REGEX', 'regex': '.*(found stuff).*'})
+        self.expectation = Regex({'type': 'REGEX', 'regex': '.*(find stuff).*'})
 
     def test_init(self):
-        assert self.expectation.regex == re.compile('.*(found stuff).*')
+        assert self.expectation.regex == re.compile('.*(find stuff).*')
 
     def test_get_status_healthy(self):
         request = mock.Mock()
-        request.text = 'We cound found stuff in this body.'
+        request.text = 'We could find stuff in this body.'
 
         assert self.expectation.get_status(request) == 1
 
     def test_get_status_unhealthy(self):
         request = mock.Mock()
-        request.text = 'We will not find here'
+        request.text = 'We will not find it here'
 
         assert self.expectation.get_status(request) == 3
 
     def test_get_message(self):
         request = mock.Mock()
-        request.text = 'We will not find here'
+        request.text = 'We will not find it here'
 
         assert self.expectation.get_message(request) == ('Regex did not match '
         'anything in the body')

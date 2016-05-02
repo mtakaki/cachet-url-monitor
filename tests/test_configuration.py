@@ -21,7 +21,7 @@ class ConfigurationTest(unittest.TestCase):
 
     def test_init(self):
         assert len(self.configuration.data) == 3
-        assert len(self.configuration.expectations) == 2
+        assert len(self.configuration.expectations) == 3
 
     def test_evaluate(self):
         def total_seconds():
@@ -31,6 +31,7 @@ class ConfigurationTest(unittest.TestCase):
             response.status_code = 200
             response.elapsed = mock.Mock()
             response.elapsed.total_seconds = total_seconds
+            response.text = '<body>'
             return response
 
         sys.modules['requests'].request = request
@@ -47,6 +48,7 @@ class ConfigurationTest(unittest.TestCase):
             response.status_code = 400
             response.elapsed = mock.Mock()
             response.elapsed.total_seconds = total_seconds
+            response.text = '<body>'
             return response
 
         sys.modules['requests'].request = request
