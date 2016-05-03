@@ -1,6 +1,7 @@
 FROM python:2-onbuild
 MAINTAINER Mitsuo Takaki <mitsuotakaki@gmail.com>
 
-VOLUME /usr/src/app/
+COPY config.yml /usr/src/app/config/
+VOLUME /usr/src/app/config/
 
-ENTRYPOINT ["python", "cachet_url_monitor/scheduler.py", "config.yml"]
+ENTRYPOINT ["python", "cachet_url_monitor/scheduler.py", "config/config.yml"]
