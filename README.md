@@ -6,6 +6,8 @@ cachet-url-monitor
 ========================
 Python plugin for [cachet](cachethq.io) that monitors an URL, verifying it's response status and latency. The frequency the URL is tested is configurable, along with the assertion applied to the request response.
 
+This project is available at PyPI: [https://pypi.python.org/pypi/cachet-url-monitor](https://pypi.python.org/pypi/cachet-url-monitor)
+
 ## Configuration
 
 ```yaml
