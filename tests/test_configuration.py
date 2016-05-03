@@ -100,9 +100,9 @@ class ConfigurationTest(unittest.TestCase):
         self.mock_logger.exception.assert_called_with(('Unexpected HTTP '
             'response'))
 
-    def test_push_status_and_metrics(self):
+    def test_push_status(self):
         def put(url, params=None, headers=None):
-            assert url == 'http://status.cachethq.io/api/v1//components/1'
+            assert url == 'https://demo.cachethq.io/api/v1/components/1'
             assert params == {'id': 1, 'status': 1}
             assert headers == {'X-Cachet-Token': 'my_token'}
 
@@ -112,11 +112,11 @@ class ConfigurationTest(unittest.TestCase):
 
         sys.modules['requests'].put = put
         self.configuration.status = 1
-        self.configuration.push_status_and_metrics()
+        self.configuration.push_status()
 
-    def test_push_status_and_metrics_with_failure(self):
+    def test_push_status_with_failure(self):
         def put(url, params=None, headers=None):
-            assert url == 'http://status.cachethq.io/api/v1//components/1'
+            assert url == 'https://demo.cachethq.io/api/v1/components/1'
             assert params == {'id': 1, 'status': 1}
             assert headers == {'X-Cachet-Token': 'my_token'}
 
@@ -126,4 +126,4 @@ class ConfigurationTest(unittest.TestCase):
 
         sys.modules['requests'].put = put
         self.configuration.status = 1
-        self.configuration.push_status_and_metrics()
+        self.configuration.push_status()

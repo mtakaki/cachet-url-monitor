@@ -8,10 +8,10 @@ endpoint:
     - type: LATENCY
       threshold: 1
     - type: REGEX
-      regex: ".*<body>.*"
+      regex: '.*<body>.*'
 cachet:
-  api_url: http://status.cachethq.io/api/v1/
+  api_url: https://demo.cachethq.io/api/v1
   token: my_token
   component_id: 1
-  metric_id: 1
+  #metric_id: 1
 frequency: 30

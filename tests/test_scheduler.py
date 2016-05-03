@@ -17,11 +17,11 @@ class AgentTest(unittest.TestCase):
 
     def test_execute(self):
         evaluate = self.configuration.evaluate
-        push_status_and_metrics = self.configuration.push_status_and_metrics
+        push_status = self.configuration.push_status
         self.agent.execute()
 
         evaluate.assert_called_once()
-        push_status_and_metrics.assert_called_once()
+        push_status.assert_called_once()
 
     def test_start(self):
         every = sys.modules['schedule'].every
