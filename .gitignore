@@ -8,3 +8,5 @@ share/
 .cache
 .coverage
 *.egg-info
+MANIFEST
+dist/

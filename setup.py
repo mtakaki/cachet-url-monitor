@@ -8,4 +8,10 @@ setup(name='cachet-url-monitor',
       author_email='mitsuotakaki@gmail.com',
       url='https://github.com/mtakaki/cachet-url-monitor',
       packages=['cachet_url_monitor'],
+      license='MIT',
+      requires=[
+          'requests',
+          'yaml',
+          'schedule',
+          ]
      )
