@@ -1,0 +1,6 @@
+version: '2'
+services:
+  monitor:
+    build: .
+    volumes:
+      - .:/usr/src/app/
