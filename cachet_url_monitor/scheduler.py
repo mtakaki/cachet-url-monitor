@@ -18,7 +18,8 @@ class Agent(object):
         cachet server.
         """
         self.configuration.evaluate()
-        self.configuration.push_status_and_metrics()
+        self.configuration.push_status()
+        self.configuration.push_metrics()
 
     def start(self):
         """Sets up the schedule based on the configuration file."""

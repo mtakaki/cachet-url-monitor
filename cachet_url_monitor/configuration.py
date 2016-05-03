@@ -3,7 +3,7 @@ import abc
 import logging
 import re
 import requests
-import timeit
+import time
 from yaml import load
 
 
@@ -22,6 +22,7 @@ class Configuration(object):
                 in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
+        self.headers = {'X-Cachet-Token': self.data['cachet']['token']}
 
     def evaluate(self):
         """Sends the request to the URL set in the configuration and executes
@@ -32,6 +33,7 @@ class Configuration(object):
             self.request = requests.request(self.data['endpoint']['method'],
                     self.data['endpoint']['url'],
                     timeout=self.data['endpoint']['timeout'])
+            self.current_timestamp = int(time.time())
         except requests.ConnectionError:
             self.logger.warning('The URL is unreachable: %s %s' %
                     (self.data['endpoint']['method'],
@@ -56,21 +58,39 @@ class Configuration(object):
             if status > self.status:
                 self.status = status
 
-    def push_status_and_metrics(self):
+    def push_status(self):
         params = {'id': self.data['cachet']['component_id'], 'status':
                 self.status}
-        headers = {'X-Cachet-Token': self.data['cachet']['token']}
         component_request = requests.put('%s/components/%d' %
                 (self.data['cachet']['api_url'],
                 self.data['cachet']['component_id']),
-                params=params, headers=headers)
-        if component_request.status_code == 200:
+                params=params, headers=self.headers)
+        if component_request.ok:
             # Successful update
             self.logger.info('Component update: status [%d]' % (self.status,))
         else:
             # Failed to update the API status
             self.logger.warning('Component update failed with status [%d]: API'
                     ' status: [%d]' % (component_request.status_code, self.status))
+
+    def push_metrics(self):
+        if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
+            params = {'id': self.data['cachet']['metric_id'], 'value':
+                    self.request.elapsed.total_seconds(), 'timestamp':
+                    self.current_timestamp}
+            metrics_request = requests.post('%s/metrics/%d/points' %
+                    (self.data['cachet']['api_url'],
+                    self.data['cachet']['metric_id']), params=params,
+                    headers=self.headers)
+
+            if metrics_request.ok:
+                # Successful metrics upload
+                self.logger.info('Metric uploaded: %.6f seconds' %
+                        (self.request.elapsed.total_seconds(),))
+            else:
+                self.logger.warning('Metric upload failed with status [%d]' %
+                        (metrics_request.status_code,))
+
 
 class Expectaction(object):
     """Base class for URL result expectations. Any new excpectation should extend
