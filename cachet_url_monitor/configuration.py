@@ -37,6 +37,8 @@ class Configuration(object):
 
         self.validate()
 
+        self.logger.info('Monitoring URL: %s %s' %
+            (self.data['endpoint']['method'], self.data['endpoint']['url']))
         self.expectations = [Expectaction.create(expectation) for expectation
                 in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
@@ -44,16 +46,26 @@ class Configuration(object):
         self.headers = {'X-Cachet-Token': self.data['cachet']['token']}
 
     def validate(self):
+        configuration_errors = []
         for key, sub_entries in configuration_mandatory_fields.iteritems():
             if key not in self.data:
-                raise ConfigurationValidationError(('Configuration file [%s] '
-                    'is missing key: %s') % (self.config_file, key))
+                configuration_errors.append(key)
 
             for sub_key in sub_entries:
                 if sub_key not in self.data[key]:
-                    raise ConfigurationValidationError(('Configuration file '
-                        '[%s] is missing key: %s.%s') % (self.config_file, key,
-                            sub_key))
+                    configuration_errors.append('%s.%s' % (key, sub_key))
+
+        if ('endpoint' in self.data and 'expectation' in
+                self.data['endpoint']):
+            if (not isinstance(self.data['endpoint']['expectation'], list) or
+                (isinstance(self.data['endpoint']['expectation'], list) and
+                len(self.data['endpoint']['expectation']) == 0)):
+                configuration_errors.append('endpoint.expectation')
+
+        if len(configuration_errors) > 0:
+            raise ConfigurationValidationError(('Config file [%s] failed '
+                'validation. Missing keys: %s') % (self.config_file,
+                ', '.join(configuration_errors)))
 
     def evaluate(self):
         """Sends the request to the URL set in the configuration and executes
