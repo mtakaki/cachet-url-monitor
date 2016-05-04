@@ -7,22 +7,53 @@ import time
 from yaml import load
 
 
+# This is the mandatory fields that must be in the configuration file in this
+# same exact structure.
+configuration_mandatory_fields = {
+        'endpoint': ['url', 'method', 'timeout', 'expectation'],
+        'cachet': ['api_url', 'token', 'component_id'],
+        'frequency': []}
+
+
+class ConfigurationValidationError(Exception):
+    """Exception raised when there's a validation error."""
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+
 class Configuration(object):
     """Represents a configuration file, but it also includes the functionality
     of assessing the API and pushing the results to cachet.
     """
     def __init__(self, config_file):
-        #TODO(mtakaki|2016-04-26): Needs validation if the config is correct.
-        #TODO(mtakaki|2016-04-28): Accept overriding settings using environment
+        #TODO(mtakaki#1|2016-04-28): Accept overriding settings using environment
         # variables so we have a more docker-friendly approach.
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
+
+        self.validate()
+
         self.expectations = [Expectaction.create(expectation) for expectation
                 in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
         self.headers = {'X-Cachet-Token': self.data['cachet']['token']}
+
+    def validate(self):
+        for key, sub_entries in configuration_mandatory_fields.iteritems():
+            if key not in self.data:
+                raise ConfigurationValidationError(('Configuration file [%s] '
+                    'is missing key: %s') % (self.config_file, key))
+
+            for sub_key in sub_entries:
+                if sub_key not in self.data[key]:
+                    raise ConfigurationValidationError(('Configuration file '
+                        '[%s] is missing key: %s.%s') % (self.config_file, key,
+                            sub_key))
 
     def evaluate(self):
         """Sends the request to the URL set in the configuration and executes
@@ -132,6 +163,9 @@ class HttpStatus(Expectaction):
     def get_message(self, response):
         return 'Unexpected HTTP status (%s)' % (response.status_code,)
 
+    def __str__(self):
+        return repr('HTTP status: %s' % (self.status,))
+
 
 class Latency(Expectaction):
     def __init__(self, configuration):
@@ -146,9 +180,13 @@ class Latency(Expectaction):
     def get_message(self, response):
         return 'Latency above threshold: %.4f' % (response.elapsed.total_seconds(),)
 
+    def __str__(self):
+        return repr('Latency threshold: %.4f' % (self.threshold,))
+
 
 class Regex(Expectaction):
     def __init__(self, configuration):
+        self.regex_string = configuration['regex']
         self.regex = re.compile(configuration['regex'])
 
     def get_status(self, response):
@@ -159,3 +197,6 @@ class Regex(Expectaction):
 
     def get_message(self, response):
         return 'Regex did not match anything in the body'
+
+    def __str__(self):
+        return repr('Regex: %s' % (self.regex_string,))
