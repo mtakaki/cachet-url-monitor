@@ -2,6 +2,9 @@
 ![Build Status](https://codeship.com/projects/5a246b70-f088-0133-9388-2640b49afa9e/status?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/cachet-url-monitor/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/cachet-url-monitor?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ef4123130ef4140b8ea7b94d460ba64)](https://www.codacy.com/app/mitsuotakaki/cachet-url-monitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mtakaki/cachet-url-monitor&amp;utm_campaign=Badge_Grade)
+![Docker pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor.svg)
+![Docker stars](https://img.shields.io/docker/stars/mtakaki/cachet-url-monitor.svg)
+![License](https://img.shields.io/github/license/mtakaki/cachet-url-monitor.svg)
 
 cachet-url-monitor
 ========================
@@ -78,6 +81,12 @@ $ docker-compose up
 Or pulling directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and put it in a folder (`my_config`):
 
 ```
-$ docker pull mtakaki/cachet-url-monitor:0.1
-$ docker run --rm -it -v my_config/:/usr/src/app/config/ mtakaki/cachet-url-monitor:0.1
+$ docker pull mtakaki/cachet-url-monitor:0.2
+$ docker run --rm -it -v my_config/:/usr/src/app/config/ mtakaki/cachet-url-monitor:0.2
+```
+
+If you're going to use a file with a name other than `config.yml`, you will need to set a custom command, like this:
+
+```
+$ docker run --rm -it -v my_config/:/usr/src/app/config/ mtakaki/cachet-url-monitor:0.2 python cachet_url_monitor/scheduler.py config/my_config.yml
 ```
