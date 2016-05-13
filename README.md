@@ -2,9 +2,10 @@
 ![Build Status](https://codeship.com/projects/5a246b70-f088-0133-9388-2640b49afa9e/status?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/cachet-url-monitor/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/cachet-url-monitor?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ef4123130ef4140b8ea7b94d460ba64)](https://www.codacy.com/app/mitsuotakaki/cachet-url-monitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mtakaki/cachet-url-monitor&amp;utm_campaign=Badge_Grade)
-![Docker pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor.svg)
-![Docker stars](https://img.shields.io/docker/stars/mtakaki/cachet-url-monitor.svg)
+[![Docker pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
+[![Docker stars](https://img.shields.io/docker/stars/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
 ![License](https://img.shields.io/github/license/mtakaki/cachet-url-monitor.svg)
+[![Latest release](https://img.shields.io/pypi/v/cachet-url-monitor.svg)](https://pypi.python.org/pypi/cachet-url-monitor)
 
 cachet-url-monitor
 ========================
