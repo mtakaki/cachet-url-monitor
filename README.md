@@ -79,15 +79,15 @@ $ docker-compose build
 $ docker-compose up
 ```
 
-Or pulling directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and put it in a folder (`my_config`):
+Or pulling directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
 
 ```
-$ docker pull mtakaki/cachet-url-monitor:0.2
-$ docker run --rm -it -v my_config/:/usr/src/app/config/ mtakaki/cachet-url-monitor:0.2
+$ docker pull mtakaki/cachet-url-monitor
+$ docker run --rm -it -v "$PWD":/usr/src/app/config/ mtakaki/cachet-url-monitor
 ```
 
-If you're going to use a file with a name other than `config.yml`, you will need to set a custom command, like this:
+If you're going to use a file with a name other than `config.yml`, you will need to map the local file, like this:
 
 ```
-$ docker run --rm -it -v my_config/:/usr/src/app/config/ mtakaki/cachet-url-monitor:0.2 python cachet_url_monitor/scheduler.py config/my_config.yml
+$ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor:0.2
 ```
