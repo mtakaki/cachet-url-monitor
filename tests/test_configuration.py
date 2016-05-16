@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import cachet_url_monitor.status
 import mock
 import unittest
 import sys
@@ -37,7 +38,7 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        assert self.configuration.status == 1
+        assert self.configuration.status == cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL
 
     def test_evaluate_with_failure(self):
         def total_seconds():
@@ -54,7 +55,7 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        assert self.configuration.status == 3
+        assert self.configuration.status == cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
 
     def test_evaluate_with_timeout(self):
         def request(method, url, timeout=None):
@@ -67,7 +68,7 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        assert self.configuration.status == 3
+        assert self.configuration.status == cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
         self.mock_logger.warning.assert_called_with('Request timed out')
 
     def test_evaluate_with_connection_error(self):

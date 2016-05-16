@@ -77,11 +77,11 @@ class RegexTest(unittest.TestCase):
         self.expectation = Regex({'type': 'REGEX', 'regex': '.*(find stuff).*'})
 
     def test_init(self):
-        assert self.expectation.regex == re.compile('.*(find stuff).*')
+        assert self.expectation.regex == re.compile('.*(find stuff).*', re.UNICODE + re.DOTALL)
 
     def test_get_status_healthy(self):
         request = mock.Mock()
-        request.text = 'We could find stuff in this body.'
+        request.text = 'We could find stuff\n in this body.'
 
         assert self.expectation.get_status(request) == 1
 

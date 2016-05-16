@@ -10,3 +10,4 @@ share/
 *.egg-info
 MANIFEST
 dist/
+.idea
