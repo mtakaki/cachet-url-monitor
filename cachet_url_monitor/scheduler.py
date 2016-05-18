@@ -10,6 +10,7 @@ class Agent(object):
     """Monitor agent that will be constantly verifying if the URL is healthy
     and updating the component.
     """
+
     def __init__(self, configuration):
         self.configuration = configuration
 
@@ -18,7 +19,6 @@ class Agent(object):
         cachet server.
         """
         self.configuration.evaluate()
-        self.configuration.push_status()
         self.configuration.push_metrics()
 
     def start(self):
@@ -26,11 +26,34 @@ class Agent(object):
         schedule.every(self.configuration.data['frequency']).seconds.do(self.execute)
 
 
+class UpdateStatusAgent(Agent):
+    def __init__(self, configuration):
+        super(UpdateStatusAgent, self).__init__(configuration)
+
+    def execute(self):
+        super(UpdateStatusAgent, self).execute()
+        self.configuration.push_status()
+
+
+class CreateIncidentAgent(Agent):
+    def __init__(self, configuration):
+        super(CreateIncidentAgent, self).__init__(configuration)
+
+    def execute(self):
+        super(CreateIncidentAgent, self).execute()
+        self.configuration.push_incident()
+
+
 class Scheduler(object):
     def __init__(self, config_file):
         self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
         self.configuration = Configuration(config_file)
-        self.agent = Agent(self.configuration)
+
+        if self.configuration.is_create_incident():
+            self.agent = CreateIncidentAgent(self.configuration)
+        else:
+            self.agent = UpdateStatusAgent(self.configuration)
+
         self.stop = False
 
     def start(self):

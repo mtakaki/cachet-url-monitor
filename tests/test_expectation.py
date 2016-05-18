@@ -42,7 +42,7 @@ class LatencyTest(unittest.TestCase):
         elapsed.total_seconds = total_seconds
 
         assert self.expectation.get_message(request) == ('Latency above '
-        'threshold: 0.1000')
+        'threshold: 0.1000 seconds')
 
 
 class HttpStatusTest(unittest.TestCase):

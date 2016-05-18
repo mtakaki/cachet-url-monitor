@@ -1,10 +1,13 @@
 #!/usr/bin/env python
-import mock
-import unittest
 import sys
+import unittest
+
+import mock
+
 sys.modules['schedule'] = mock.Mock()
-sys.modules['cachet_url_monitor.configuration.Configuration'] = mock.Mock()
-from cachet_url_monitor.scheduler import Agent,Scheduler
+# sys.modules['cachet_url_monitor.configuration.Configuration'] = mock.Mock()
+sys.modules['requests'] = mock.Mock()
+from cachet_url_monitor.scheduler import Agent, Scheduler
 
 
 class AgentTest(unittest.TestCase):
@@ -21,7 +24,7 @@ class AgentTest(unittest.TestCase):
         self.agent.execute()
 
         evaluate.assert_called_once()
-        push_status.assert_called_once()
+        push_status.assert_not_called()
 
     def test_start(self):
         every = sys.modules['schedule'].every
@@ -33,16 +36,28 @@ class AgentTest(unittest.TestCase):
 
 
 class SchedulerTest(unittest.TestCase):
+    @mock.patch('cachet_url_monitor.configuration.Configuration.__init__', mock.Mock(return_value=None))
+    @mock.patch('cachet_url_monitor.configuration.Configuration.is_create_incident', mock.Mock(return_value=False))
     def setUp(self):
-        self.mock_configuration = sys.modules[('cachet_url_monitor.configuration'
-            '.Configuration')]
+        def get(url, headers):
+            get_return = mock.Mock()
+            get_return.ok = True
+            get_return.json = mock.Mock()
+            get_return.json.return_value = {'data': {'status': 1}}
+            return get_return
+
+        sys.modules['requests'].get = get
+
         self.scheduler = Scheduler('config.yml')
 
     def test_init(self):
         assert self.scheduler.stop == False
 
-    def test_start(self):
-        #TODO(mtakaki|2016-05-01): We need a better way of testing this method.
+    @mock.patch('cachet_url_monitor.configuration.Configuration', create=True)
+    def test_start(self, mock_configuration):
+        # TODO(mtakaki|2016-05-01): We need a better way of testing this method.
         # Leaving it as a placeholder.
+        mock_configuration.data = {'frequency': 30}
+        
         self.scheduler.stop = True
         self.scheduler.start()

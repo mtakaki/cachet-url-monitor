@@ -25,6 +25,16 @@ class ConfigurationValidationError(Exception):
         return repr(self.value)
 
 
+class ComponentNonexistentError(Exception):
+    """Exception raised when the component does not exist."""
+
+    def __init__(self, component_id):
+        self.component_id = component_id
+
+    def __str__(self):
+        return repr('Component with id [%d] does not exist.' % (self.component_id,))
+
+
 class Configuration(object):
     """Represents a configuration file, but it also includes the functionality
     of assessing the API and pushing the results to cachet.
@@ -37,7 +47,10 @@ class Configuration(object):
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
 
+        # We need to validate the configuration is correct and then validate the component actually exists.
         self.validate()
+        self.headers = {'X-Cachet-Token': self.data['cachet']['token']}
+        self.status = self.get_current_status(self.data['cachet']['component_id'])
 
         self.logger.info('Monitoring URL: %s %s' %
                          (self.data['endpoint']['method'], self.data['endpoint']['url']))
@@ -46,7 +59,16 @@ class Configuration(object):
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
-        self.headers = {'X-Cachet-Token': self.data['cachet']['token']}
+    def get_current_status(self, component_id):
+        get_status_request = requests.get(
+            '%s/components/%d' % (self.data['cachet']['api_url'], self.data['cachet']['component_id']),
+            headers=self.headers)
+
+        if get_status_request.ok:
+            # The component exists.
+            return get_status_request.json()['data']['status']
+        else:
+            raise ComponentNonexistentError(component_id)
 
     def is_create_incident(self):
         """Will verify if the configuration is set to create incidents or not.
@@ -172,7 +194,8 @@ class Configuration(object):
             if incident_request.ok:
                 # Successful metrics upload
                 self.logger.info(
-                    'Incident updated: component status [%d], message: "%s"' % (self.status, self.message))
+                    'Incident updated, API healthy again: component status [%d], message: "%s"' % (
+                        self.status, self.message))
                 del self.incident_id
             else:
                 self.logger.warning(
@@ -190,7 +213,7 @@ class Configuration(object):
                 self.incident_id = incident_request.json()['data']['id']
                 self.logger.info(
                     'Incident uploaded, API unhealthy: component status [%d], message: "%s"' % (
-                    self.status, self.message))
+                        self.status, self.message))
             else:
                 self.logger.warning(
                     'Incident upload failed with status [%d], message: "%s"' % (
@@ -253,10 +276,10 @@ class Latency(Expectaction):
             return cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
 
     def get_message(self, response):
-        return 'Latency above threshold: %.4f' % (response.elapsed.total_seconds(),)
+        return 'Latency above threshold: %.4f seconds' % (response.elapsed.total_seconds(),)
 
     def __str__(self):
-        return repr('Latency threshold: %.4f' % (self.threshold,))
+        return repr('Latency threshold: %.4f seconds' % (self.threshold,))
 
 
 class Regex(Expectaction):
