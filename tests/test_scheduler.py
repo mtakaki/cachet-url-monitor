@@ -5,8 +5,6 @@ import unittest
 import mock
 
 sys.modules['schedule'] = mock.Mock()
-# sys.modules['cachet_url_monitor.configuration.Configuration'] = mock.Mock()
-sys.modules['requests'] = mock.Mock()
 from cachet_url_monitor.scheduler import Agent, Scheduler
 
 
@@ -36,9 +34,8 @@ class AgentTest(unittest.TestCase):
 
 
 class SchedulerTest(unittest.TestCase):
-    @mock.patch('cachet_url_monitor.configuration.Configuration.__init__', mock.Mock(return_value=None))
-    @mock.patch('cachet_url_monitor.configuration.Configuration.is_create_incident', mock.Mock(return_value=False))
-    def setUp(self):
+    @mock.patch('requests.get')
+    def setUp(self, mock_requests):
         def get(url, headers):
             get_return = mock.Mock()
             get_return.ok = True
@@ -46,18 +43,15 @@ class SchedulerTest(unittest.TestCase):
             get_return.json.return_value = {'data': {'status': 1}}
             return get_return
 
-        sys.modules['requests'].get = get
+        mock_requests.get = get
 
         self.scheduler = Scheduler('config.yml')
 
     def test_init(self):
         assert self.scheduler.stop == False
 
-    @mock.patch('cachet_url_monitor.configuration.Configuration', create=True)
-    def test_start(self, mock_configuration):
+    def test_start(self):
         # TODO(mtakaki|2016-05-01): We need a better way of testing this method.
         # Leaving it as a placeholder.
-        mock_configuration.data = {'frequency': 30}
-        
         self.scheduler.stop = True
         self.scheduler.start()
