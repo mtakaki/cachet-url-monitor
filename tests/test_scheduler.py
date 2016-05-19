@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-import mock
-import unittest
 import sys
+import unittest
+
+import mock
+
 sys.modules['schedule'] = mock.Mock()
-sys.modules['cachet_url_monitor.configuration.Configuration'] = mock.Mock()
-from cachet_url_monitor.scheduler import Agent,Scheduler
+from cachet_url_monitor.scheduler import Agent, Scheduler
 
 
 class AgentTest(unittest.TestCase):
@@ -21,7 +22,7 @@ class AgentTest(unittest.TestCase):
         self.agent.execute()
 
         evaluate.assert_called_once()
-        push_status.assert_called_once()
+        push_status.assert_not_called()
 
     def test_start(self):
         every = sys.modules['schedule'].every
@@ -33,16 +34,24 @@ class AgentTest(unittest.TestCase):
 
 
 class SchedulerTest(unittest.TestCase):
-    def setUp(self):
-        self.mock_configuration = sys.modules[('cachet_url_monitor.configuration'
-            '.Configuration')]
+    @mock.patch('requests.get')
+    def setUp(self, mock_requests):
+        def get(url, headers):
+            get_return = mock.Mock()
+            get_return.ok = True
+            get_return.json = mock.Mock()
+            get_return.json.return_value = {'data': {'status': 1}}
+            return get_return
+
+        mock_requests.get = get
+
         self.scheduler = Scheduler('config.yml')
 
     def test_init(self):
         assert self.scheduler.stop == False
 
     def test_start(self):
-        #TODO(mtakaki|2016-05-01): We need a better way of testing this method.
+        # TODO(mtakaki|2016-05-01): We need a better way of testing this method.
         # Leaving it as a placeholder.
         self.scheduler.stop = True
         self.scheduler.start()

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+import unittest
+
 import mock
 import re
-import unittest
-from cachet_url_monitor.configuration import Expectaction,Latency
-from cachet_url_monitor.configuration import HttpStatus,Regex
+from cachet_url_monitor.configuration import HttpStatus, Regex
+from cachet_url_monitor.configuration import Latency
 
 
 class LatencyTest(unittest.TestCase):
@@ -16,6 +17,7 @@ class LatencyTest(unittest.TestCase):
     def test_get_status_healthy(self):
         def total_seconds():
             return 0.1
+
         request = mock.Mock()
         elapsed = mock.Mock()
         request.elapsed = elapsed
@@ -26,6 +28,7 @@ class LatencyTest(unittest.TestCase):
     def test_get_status_unhealthy(self):
         def total_seconds():
             return 2
+
         request = mock.Mock()
         elapsed = mock.Mock()
         request.elapsed = elapsed
@@ -36,13 +39,14 @@ class LatencyTest(unittest.TestCase):
     def test_get_message(self):
         def total_seconds():
             return 0.1
+
         request = mock.Mock()
         elapsed = mock.Mock()
         request.elapsed = elapsed
         elapsed.total_seconds = total_seconds
 
         assert self.expectation.get_message(request) == ('Latency above '
-        'threshold: 0.1000')
+                                                         'threshold: 0.1000 seconds')
 
 
 class HttpStatusTest(unittest.TestCase):
@@ -69,7 +73,7 @@ class HttpStatusTest(unittest.TestCase):
         request.status_code = 400
 
         assert self.expectation.get_message(request) == ('Unexpected HTTP '
-        'status (400)')
+                                                         'status (400)')
 
 
 class RegexTest(unittest.TestCase):
@@ -77,11 +81,11 @@ class RegexTest(unittest.TestCase):
         self.expectation = Regex({'type': 'REGEX', 'regex': '.*(find stuff).*'})
 
     def test_init(self):
-        assert self.expectation.regex == re.compile('.*(find stuff).*')
+        assert self.expectation.regex == re.compile('.*(find stuff).*', re.UNICODE + re.DOTALL)
 
     def test_get_status_healthy(self):
         request = mock.Mock()
-        request.text = 'We could find stuff in this body.'
+        request.text = 'We could find stuff\n in this body.'
 
         assert self.expectation.get_status(request) == 1
 
@@ -96,4 +100,4 @@ class RegexTest(unittest.TestCase):
         request.text = 'We will not find it here'
 
         assert self.expectation.get_message(request) == ('Regex did not match '
-        'anything in the body')
+                                                         'anything in the body')
