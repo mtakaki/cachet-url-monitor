@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+import logging
+import time
+
 import abc
 import cachet_url_monitor.status
-import logging
+import os
 import re
 import requests
-import time
 from yaml import load
 
 # This is the mandatory fields that must be in the configuration file in this
@@ -41,28 +43,32 @@ class Configuration(object):
     """
 
     def __init__(self, config_file):
-        # TODO(mtakaki#1|2016-04-28): Accept overriding settings using environment
-        # variables so we have a more docker-friendly approach.
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
 
         # We need to validate the configuration is correct and then validate the component actually exists.
         self.validate()
-        self.headers = {'X-Cachet-Token': self.data['cachet']['token']}
-        self.status = self.get_current_status(self.data['cachet']['component_id'])
 
-        self.logger.info('Monitoring URL: %s %s' %
-                         (self.data['endpoint']['method'], self.data['endpoint']['url']))
-        self.expectations = [Expectaction.create(expectation) for expectation
-                             in self.data['endpoint']['expectation']]
+        self.headers = {'X-Cachet-Token': os.environ.get('CACHET_TOKEN') or self.data['cachet']['token']}
+
+        self.endpoint_method = os.environ.get('ENDPOINT_METHOD') or self.data['endpoint']['method']
+        self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
+        self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout')
+
+        self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
+        self.component_id = os.environ.get('CACHET_COMPONENT_ID') or self.data['cachet']['component_id']
+        self.metric_id = os.environ.get('CACHET_METRIC_ID') or self.data['cachet'].get('metric_id')
+
+        self.status = self.get_current_status(self.api_url, self.component_id, self.headers)
+
+        self.logger.info('Monitoring URL: %s %s' % (self.endpoint_method, self.endpoint_url))
+        self.expectations = [Expectaction.create(expectation) for expectation in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
-    def get_current_status(self, component_id):
-        get_status_request = requests.get(
-            '%s/components/%d' % (self.data['cachet']['api_url'], self.data['cachet']['component_id']),
-            headers=self.headers)
+    def get_current_status(self, endpoint_url, component_id, headers):
+        get_status_request = requests.get('%s/components/%s' % (endpoint_url, component_id), headers=headers)
 
         if get_status_request.ok:
             # The component exists.
@@ -112,9 +118,7 @@ class Configuration(object):
             self.previous_status = self.status
 
         try:
-            self.request = requests.request(self.data['endpoint']['method'],
-                                            self.data['endpoint']['url'],
-                                            timeout=self.data['endpoint']['timeout'])
+            self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
             self.current_timestamp = int(time.time())
         except requests.ConnectionError:
             self.message = 'The URL is unreachable: %s %s' % (
@@ -148,12 +152,9 @@ class Configuration(object):
         """Pushes the status of the component to the cachet server. It will update the component
         status based on the previous call to evaluate().
         """
-        params = {'id': self.data['cachet']['component_id'], 'status':
-            self.status}
-        component_request = requests.put('%s/components/%d' %
-                                         (self.data['cachet']['api_url'],
-                                          self.data['cachet']['component_id']),
-                                         params=params, headers=self.headers)
+        params = {'id': self.component_id, 'status': self.status}
+        component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
+                                         headers=self.headers)
         if component_request.ok:
             # Successful update
             self.logger.info('Component update: status [%d]' % (self.status,))
@@ -167,9 +168,8 @@ class Configuration(object):
         It only will send a request if the metric id was set in the configuration.
         """
         if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
-            params = {'id': self.data['cachet']['metric_id'], 'value':
-                self.request.elapsed.total_seconds(), 'timestamp':
-                          self.current_timestamp}
+            params = {'id': self.metric_id, 'value': self.request.elapsed.total_seconds(),
+                      'timestamp': self.current_timestamp}
             metrics_request = requests.post('%s/metrics/%d/points' %
                                             (self.data['cachet']['api_url'],
                                              self.data['cachet']['metric_id']), params=params,

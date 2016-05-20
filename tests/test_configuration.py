@@ -9,6 +9,7 @@ from requests import ConnectionError, HTTPError, Timeout
 sys.modules['requests'] = mock.Mock()
 sys.modules['logging'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
+from test.test_support import EnvironmentVarGuard
 
 
 class ConfigurationTest(unittest.TestCase):
@@ -28,6 +29,9 @@ class ConfigurationTest(unittest.TestCase):
 
         sys.modules['requests'].get = get
 
+        self.env = EnvironmentVarGuard()
+        self.env.set('CACHET_TOKEN', 'token2')
+
         self.configuration = Configuration('config.yml')
         sys.modules['requests'].Timeout = Timeout
         sys.modules['requests'].ConnectionError = ConnectionError
@@ -36,6 +40,8 @@ class ConfigurationTest(unittest.TestCase):
     def test_init(self):
         assert len(self.configuration.data) == 3
         assert len(self.configuration.expectations) == 3
+        assert self.configuration.headers == {'X-Cachet-Token': 'token2'}
+        assert self.configuration.api_url == 'https://demo.cachethq.io/api/v1'
 
     def test_evaluate(self):
         def total_seconds():
@@ -120,7 +126,7 @@ class ConfigurationTest(unittest.TestCase):
         def put(url, params=None, headers=None):
             assert url == 'https://demo.cachethq.io/api/v1/components/1'
             assert params == {'id': 1, 'status': 1}
-            assert headers == {'X-Cachet-Token': 'my_token'}
+            assert headers == {'X-Cachet-Token': 'token2'}
 
             response = mock.Mock()
             response.status_code = 200
@@ -134,7 +140,7 @@ class ConfigurationTest(unittest.TestCase):
         def put(url, params=None, headers=None):
             assert url == 'https://demo.cachethq.io/api/v1/components/1'
             assert params == {'id': 1, 'status': 1}
-            assert headers == {'X-Cachet-Token': 'my_token'}
+            assert headers == {'X-Cachet-Token': 'token2'}
 
             response = mock.Mock()
             response.status_code = 300
