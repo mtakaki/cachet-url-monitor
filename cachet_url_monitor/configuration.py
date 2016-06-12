@@ -69,6 +69,11 @@ class Configuration(object):
 
         self.endpoint_method = os.environ.get('ENDPOINT_METHOD') or self.data['endpoint']['method']
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
+
+        # We support multiple endpoint urls.
+        if not isinstance(self.endpoint_url, list):
+            self.endpoint_url = [self.endpoint_url]
+
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
@@ -103,12 +108,10 @@ class Configuration(object):
                 if sub_key not in self.data[key]:
                     configuration_errors.append('%s.%s' % (key, sub_key))
 
-        if ('endpoint' in self.data and 'expectation' in
-            self.data['endpoint']):
-            if (not isinstance(self.data['endpoint']['expectation'], list) or
-                    (isinstance(self.data['endpoint']['expectation'], list) and
-                             len(self.data['endpoint']['expectation']) == 0)):
-                configuration_errors.append('endpoint.expectation')
+        if self.data.get('endpoint') and (not isinstance(self.data['endpoint']['expectation'], list) or (
+                    isinstance(self.data['endpoint']['expectation'], list) and len(
+                    self.data['endpoint']['expectation']) == 0)):
+            configuration_errors.append('endpoint.expectation')
 
         if len(configuration_errors) > 0:
             raise ConfigurationValidationError(
@@ -120,35 +123,38 @@ class Configuration(object):
         each one of the expectations, one by one. The status will be updated
         according to the expectation results.
         """
-        try:
-            self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
-            self.current_timestamp = int(time.time())
-        except requests.ConnectionError:
-            self.message = 'The URL is unreachable: %s %s' % (self.endpoint_method, self.endpoint_url)
-            self.logger.warning(self.message)
-            self.status = cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
-            return
-        except requests.HTTPError:
-            self.message = 'Unexpected HTTP response'
-            self.logger.exception(self.message)
-            self.status = cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
-            return
-        except requests.Timeout:
-            self.message = 'Request timed out'
-            self.logger.warning(self.message)
-            self.status = cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
-            return
+        for current_url in self.endpoint_url:
+            self.request = list
+            try:
+                self.request.append(requests.request(self.endpoint_method, current_url, timeout=self.endpoint_timeout))
+                self.current_timestamp = int(time.time())
+            except requests.ConnectionError:
+                self.message = 'The URL is unreachable: %s %s' % (self.endpoint_method, current_url)
+                self.logger.warning(self.message)
+                self.status = cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
+                return
+            except requests.HTTPError:
+                self.message = 'Unexpected HTTP response'
+                self.logger.exception(self.message)
+                self.status = cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
+                return
+            except requests.Timeout:
+                self.message = 'Request timed out'
+                self.logger.warning(self.message)
+                self.status = cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
+                return
 
         # We initially assume the API is healthy.
         self.status = cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL
         self.message = ''
         for expectation in self.expectations:
-            status = expectation.get_status(self.request)
+            for current_request in self.request:
+                status = expectation.get_status(current_request)
 
-            # The greater the status is, the worse the state of the API is.
-            if status > self.status:
-                self.status = status
-                self.message = expectation.get_message(self.request)
+                # The greater the status is, the worse the state of the API is.
+                if status > self.status:
+                    self.status = status
+                    self.message = expectation.get_message(current_request)
 
     def push_status(self):
         """Pushes the status of the component to the cachet server. It will update the component
@@ -238,7 +244,7 @@ class Expectaction(object):
         return expectations.get(configuration['type'])(configuration)
 
     @abc.abstractmethod
-    def get_status(self, response):
+    def get_status(self, responses):
         """Returns the status of the API, following cachet's component status
         documentation: https://docs.cachethq.io/docs/component-statuses
         """
@@ -258,6 +264,7 @@ class HttpStatus(Expectaction):
         else:
             return cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
 
+    @classmethod
     def get_message(self, response):
         return 'Unexpected HTTP status (%s)' % (response.status_code,)
 
@@ -275,6 +282,7 @@ class Latency(Expectaction):
         else:
             return cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
 
+    @classmethod
     def get_message(self, response):
         return 'Latency above threshold: %.4f seconds' % (response.elapsed.total_seconds(),)
 
@@ -293,6 +301,7 @@ class Regex(Expectaction):
         else:
             return cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
 
+    @classmethod
     def get_message(self, response):
         return 'Regex did not match anything in the body'
 

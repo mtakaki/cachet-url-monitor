@@ -11,3 +11,5 @@ share/
 MANIFEST
 dist/
 .idea
+.sonar
+sonar-project.properties
