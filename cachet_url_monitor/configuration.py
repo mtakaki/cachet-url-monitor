@@ -3,7 +3,7 @@ import abc
 import logging
 import time
 
-import cachet_url_monitor.status
+import status as st
 import os
 import re
 import requests
@@ -126,21 +126,21 @@ class Configuration(object):
         except requests.ConnectionError:
             self.message = 'The URL is unreachable: %s %s' % (self.endpoint_method, self.endpoint_url)
             self.logger.warning(self.message)
-            self.status = cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
+            self.status = st.COMPONENT_STATUS_PARTIAL_OUTAGE
             return
         except requests.HTTPError:
             self.message = 'Unexpected HTTP response'
             self.logger.exception(self.message)
-            self.status = cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
+            self.status = st.COMPONENT_STATUS_PARTIAL_OUTAGE
             return
         except requests.Timeout:
             self.message = 'Request timed out'
             self.logger.warning(self.message)
-            self.status = cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
+            self.status = st.COMPONENT_STATUS_PERFORMANCE_ISSUES
             return
 
         # We initially assume the API is healthy.
-        self.status = cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL
+        self.status = st.COMPONENT_STATUS_OPERATIONAL
         self.message = ''
         for expectation in self.expectations:
             status = expectation.get_status(self.request)
@@ -187,7 +187,7 @@ class Configuration(object):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
         or updates the existing incident once it becomes healthy again.
         """
-        if hasattr(self, 'incident_id') and self.status == cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL:
+        if hasattr(self, 'incident_id') and self.status == st.COMPONENT_STATUS_OPERATIONAL:
             # If the incident already exists, it means it was unhealthy but now it's healthy again.
             params = {'status': 4, 'visible': 1, 'component_id': self.component_id, 'component_status': self.status,
                       'notify': True}
@@ -203,7 +203,7 @@ class Configuration(object):
             else:
                 self.logger.warning('Incident update failed with status [%d], message: "%s"' % (
                     incident_request.status_code, self.message))
-        elif not hasattr(self, 'incident_id') and self.status != cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL:
+        elif not hasattr(self, 'incident_id') and self.status != st.COMPONENT_STATUS_OPERATIONAL:
             # This is the first time the incident is being created.
             params = {'name': 'URL unavailable', 'message': self.message, 'status': 1, 'visible': 1,
                       'component_id': self.component_id, 'component_status': self.status, 'notify': True}
@@ -254,9 +254,9 @@ class HttpStatus(Expectaction):
 
     def get_status(self, response):
         if response.status_code == self.status:
-            return cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL
+            return st.COMPONENT_STATUS_OPERATIONAL
         else:
-            return cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
+            return st.COMPONENT_STATUS_PARTIAL_OUTAGE
 
     def get_message(self, response):
         return 'Unexpected HTTP status (%s)' % (response.status_code,)
@@ -271,9 +271,9 @@ class Latency(Expectaction):
 
     def get_status(self, response):
         if response.elapsed.total_seconds() <= self.threshold:
-            return cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL
+            return st.COMPONENT_STATUS_OPERATIONAL
         else:
-            return cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES
+            return st.COMPONENT_STATUS_PERFORMANCE_ISSUES
 
     def get_message(self, response):
         return 'Latency above threshold: %.4f seconds' % (response.elapsed.total_seconds(),)
@@ -289,9 +289,9 @@ class Regex(Expectaction):
 
     def get_status(self, response):
         if self.regex.match(response.text):
-            return cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL
+            return st.COMPONENT_STATUS_OPERATIONAL
         else:
-            return cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE
+            return st.COMPONENT_STATUS_PARTIAL_OUTAGE
 
     def get_message(self, response):
         return 'Regex did not match anything in the body'
