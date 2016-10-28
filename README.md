@@ -29,7 +29,7 @@ endpoint:
     - type: REGEX
       regex: ".*<body>.*"
 cachet:
-  api_url: http://status.cachethq.io/api/v1/
+  api_url: http://status.cachethq.io/api/v1
   token: my_token
   component_id: 1
   metric_id: 1
@@ -56,7 +56,7 @@ frequency: 30
 The application should be installed using **virtualenv**, through the following command:
 
 ```
-$ git clone git@github.com:mtakaki/cachet-url-monitor.git
+$ git clone https://github.com/mtakaki/cachet-url-monitor.git
 $ virtualenv cachet-url-monitor
 $ cd cachet-url-monitor
 $ source bin/activate
