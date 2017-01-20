@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import abc
+import copy
 import logging
-import time
-
-import status as st
 import os
 import re
+import time
+
 import requests
+import status as st
+from yaml import dump
 from yaml import load
 
 # This is the mandatory fields that must be in the configuration file in this
@@ -60,6 +62,9 @@ class Configuration(object):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
+
+        # Exposing the configuration to confirm it's parsed as expected.
+        self.print_out()
 
         # We need to validate the configuration is correct and then validate the component actually exists.
         self.validate()
@@ -149,6 +154,16 @@ class Configuration(object):
             if status > self.status:
                 self.status = status
                 self.message = expectation.get_message(self.request)
+                self.logger.info(self.message)
+
+    def print_out(self):
+        self.logger.info('Current configuration:\n%s' % (self.__repr__()))
+
+    def __repr__(self):
+        temporary_data = copy.deepcopy(self.data)
+        # Removing the token so we don't leak it in the logs.
+        del temporary_data['cachet']['token']
+        return dump(temporary_data, default_flow_style=False)
 
     def push_status(self):
         """Pushes the status of the component to the cachet server. It will update the component
