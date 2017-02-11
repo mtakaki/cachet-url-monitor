@@ -7,9 +7,10 @@ import re
 import time
 
 import requests
-import status as st
 from yaml import dump
 from yaml import load
+
+import status as st
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
@@ -99,6 +100,15 @@ class Configuration(object):
         :return True if the configuration is set to update status or False it otherwise.
         """
         return 'update_status' in self.data['cachet'] and self.data['cachet']['update_status']
+
+    def get_action(self):
+        """Retrieves the action list from the configuration. If it's empty, returns an empty list.
+        :return: The list of actions, which can be an empty list.
+        """
+        if self.data['cachet'].get('action') is None:
+            return []
+        else:
+            return self.data['cachet']['action']
 
     def validate(self):
         """Validates the configuration by verifying the mandatory fields are

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-from configuration import Configuration
 import logging
-import schedule
 import sys
 import time
+
+import schedule
+
+from configuration import Configuration
 
 
 class Agent(object):
@@ -11,8 +13,9 @@ class Agent(object):
     and updating the component.
     """
 
-    def __init__(self, configuration):
+    def __init__(self, configuration, decorators=[]):
         self.configuration = configuration
+        self.decorators = decorators
 
     def execute(self):
         """Will verify the API status and push the status and metrics to the
@@ -21,42 +24,48 @@ class Agent(object):
         self.configuration.evaluate()
         self.configuration.push_metrics()
 
+        for decorator in self.decorators:
+            decorator.execute(self.configuration)
+
     def start(self):
         """Sets up the schedule based on the configuration file."""
         schedule.every(self.configuration.data['frequency']).seconds.do(self.execute)
 
 
-class UpdateStatusAgent(Agent):
-    def __init__(self, configuration):
-        super(UpdateStatusAgent, self).__init__(configuration)
-
-    def execute(self):
-        super(UpdateStatusAgent, self).execute()
-        self.configuration.push_status()
+class Decorator(object):
+    def execute(self, configuration):
+        pass
 
 
-class CreateIncidentAgent(Agent):
-    def __init__(self, configuration):
-        super(CreateIncidentAgent, self).__init__(configuration)
+class UpdateStatusAgent(Decorator):
+    def execute(self, configuration):
+        configuration.push_status()
 
-    def execute(self):
-        super(CreateIncidentAgent, self).execute()
-        self.configuration.push_incident()
+
+class CreateIncidentAgent(Decorator):
+    def execute(self, configuration):
+        configuration.push_incident()
 
 
 class Scheduler(object):
     def __init__(self, config_file):
         self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
         self.configuration = Configuration(config_file)
-
-        if self.configuration.is_create_incident():
-            self.agent = CreateIncidentAgent(self.configuration)
-        elif self.configuration.is_update_status():
-            self.agent = UpdateStatusAgent(self.configuration)
-        else:
-            self.agent = Agent(self.configuration)
+        self.agent = self.get_agent()
 
         self.stop = False
+
+    def get_agent(self):
+        action_names = {
+            'CREATE_INCIDENT': CreateIncidentAgent,
+            'UPDATE_STATUS': UpdateStatusAgent,
+            None: Agent
+        }
+        actions = []
+        for action in self.configuration.get_action():
+            self.logger.info('Registering action %s' % (action))
+            actions.append(action_names[action]())
+        return Agent(self.configuration, decorators=actions)
 
     def start(self):
         self.agent.start()
