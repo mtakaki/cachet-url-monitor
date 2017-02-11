@@ -51,8 +51,10 @@ class Scheduler(object):
 
         if self.configuration.is_create_incident():
             self.agent = CreateIncidentAgent(self.configuration)
-        else:
+        elif self.configuration.is_update_status():
             self.agent = UpdateStatusAgent(self.configuration)
+        else:
+            self.agent = Agent(self.configuration)
 
         self.stop = False
 

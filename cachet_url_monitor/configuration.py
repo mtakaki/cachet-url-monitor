@@ -94,6 +94,12 @@ class Configuration(object):
         """
         return 'create_incident' in self.data['cachet'] and self.data['cachet']['create_incident']
 
+    def is_update_status(self):
+        """Will verify if the configuration is set to update status or not.
+        :return True if the configuration is set to update status or False it otherwise.
+        """
+        return 'update_status' in self.data['cachet'] and self.data['cachet']['update_status']
+
     def validate(self):
         """Validates the configuration by verifying the mandatory fields are
         present and in the correct format. If the validation fails, a
