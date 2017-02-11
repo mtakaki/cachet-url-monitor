@@ -96,5 +96,5 @@ $ docker run --rm -it -v "$PWD":/usr/src/app/config/ mtakaki/cachet-url-monitor
 If you're going to use a file with a name other than `config.yml`, you will need to map the local file, like this:
 
 ```
-$ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor:0.2
+$ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor
 ```
