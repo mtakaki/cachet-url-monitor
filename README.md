@@ -33,7 +33,9 @@ cachet:
   token: my_token
   component_id: 1
   metric_id: 1
-  action: CREATE_INCIDENT
+  action:
+    - CREATE_INCIDENT
+    - UPDATE_STATUS
 frequency: 30
 ```
 
