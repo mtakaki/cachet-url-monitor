@@ -2,7 +2,7 @@
 from distutils.core import setup
 
 setup(name='cachet-url-monitor',
-      version='0.2',
+      version='0.3',
       description='Cachet URL monitor plugin',
       author='Mitsuo Takaki',
       author_email='mitsuotakaki@gmail.com',

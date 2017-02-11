@@ -20,7 +20,7 @@ This project is available at PyPI: [https://pypi.python.org/pypi/cachet-url-moni
 endpoint:
   url: http://www.google.com
   method: GET
-  timeout: 0.010 # seconds
+  timeout: 1 # seconds
   expectation:
     - type: HTTP_STATUS
       status: 200
