@@ -13,8 +13,10 @@ class Agent(object):
     and updating the component.
     """
 
-    def __init__(self, configuration, decorators=[]):
+    def __init__(self, configuration, decorators=None):
         self.configuration = configuration
+        if decorators is None:
+            decorators = []
         self.decorators = decorators
 
     def execute(self):
