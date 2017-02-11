@@ -37,12 +37,12 @@ class Decorator(object):
         pass
 
 
-class UpdateStatusAgent(Decorator):
+class UpdateStatusDecorator(Decorator):
     def execute(self, configuration):
         configuration.push_status()
 
 
-class CreateIncidentAgent(Decorator):
+class CreateIncidentDecorator(Decorator):
     def execute(self, configuration):
         configuration.push_incident()
 
@@ -57,9 +57,8 @@ class Scheduler(object):
 
     def get_agent(self):
         action_names = {
-            'CREATE_INCIDENT': CreateIncidentAgent,
-            'UPDATE_STATUS': UpdateStatusAgent,
-            None: Agent
+            'CREATE_INCIDENT': CreateIncidentDecorator,
+            'UPDATE_STATUS': UpdateStatusDecorator,
         }
         actions = []
         for action in self.configuration.get_action():
