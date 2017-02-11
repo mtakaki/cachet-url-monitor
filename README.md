@@ -33,7 +33,9 @@ cachet:
   token: my_token
   component_id: 1
   metric_id: 1
-  update_status: true
+  action:
+    - CREATE_INCIDENT
+    - UPDATE_STATUS
 frequency: 30
 ```
 
@@ -50,7 +52,9 @@ frequency: 30
     - **token**, the API token.
     - **component_id**, the id of the component we're monitoring. This will be used to update the status of the component.
     - **metric_id**, this will be used to store the latency of the API. If this is not set, it will be ignored.
-    - **update_status**, boolean to decide if the component status should be changed in case of a check failure.
+    - **action**, the action to be done when one of the expectations fails. This is optional and if left blank, nothing will be done to the component.
+        - **CREATE_INCIDENT**, we will create an incident when the expectation fails.
+        - **UPDATE_STATUS**, updates the component status
 - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
 
 ## Setting up
