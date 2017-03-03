@@ -36,6 +36,7 @@ cachet:
   action:
     - CREATE_INCIDENT
     - UPDATE_STATUS
+  public_incidents: true
 frequency: 30
 ```
 
@@ -55,6 +56,7 @@ frequency: 30
     - **action**, the action to be done when one of the expectations fails. This is optional and if left blank, nothing will be done to the component.
         - **CREATE_INCIDENT**, we will create an incident when the expectation fails.
         - **UPDATE_STATUS**, updates the component status
+    - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
 - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
 
 ## Setting up
