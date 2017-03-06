@@ -17,4 +17,5 @@ cachet:
   action:
     - CREATE_INCIDENT
     - UPDATE_STATUS
+  public_incidents: true
 frequency: 30
