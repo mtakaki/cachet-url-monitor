@@ -92,18 +92,6 @@ class Configuration(object):
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
-    def is_create_incident(self):
-        """Will verify if the configuration is set to create incidents or not.
-        :return True if the configuration is set to create incidents or False it otherwise.
-        """
-        return 'create_incident' in self.data['cachet'] and self.data['cachet']['create_incident']
-
-    def is_update_status(self):
-        """Will verify if the configuration is set to update status or not.
-        :return True if the configuration is set to update status or False it otherwise.
-        """
-        return 'update_status' in self.data['cachet'] and self.data['cachet']['update_status']
-
     def get_action(self):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
         :return: The list of actions, which can be an empty list.
