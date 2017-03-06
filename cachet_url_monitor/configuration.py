@@ -84,6 +84,9 @@ class Configuration(object):
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = get_current_status(self.api_url, self.component_id, self.headers)
 
+        # Get remaining settings
+        self.public_incidents = int(os.environ.get('CACHET_PUBLIC_INCIDENTS') or self.data['cachet']['public_incidents'])
+
         self.logger.info('Monitoring URL: %s %s' % (self.endpoint_method, self.endpoint_url))
         self.expectations = [Expectaction.create(expectation) for expectation in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
@@ -220,7 +223,7 @@ class Configuration(object):
         """
         if hasattr(self, 'incident_id') and self.status == st.COMPONENT_STATUS_OPERATIONAL:
             # If the incident already exists, it means it was unhealthy but now it's healthy again.
-            params = {'status': 4, 'visible': 1, 'component_id': self.component_id, 'component_status': self.status,
+            params = {'status': 4, 'visible': self.public_incidents, 'component_id': self.component_id, 'component_status': self.status,
                       'notify': True}
 
             incident_request = requests.put('%s/incidents/%d' % (self.api_url, self.incident_id), params=params,
@@ -236,7 +239,7 @@ class Configuration(object):
                     incident_request.status_code, self.message))
         elif not hasattr(self, 'incident_id') and self.status != st.COMPONENT_STATUS_OPERATIONAL:
             # This is the first time the incident is being created.
-            params = {'name': 'URL unavailable', 'message': self.message, 'status': 1, 'visible': 1,
+            params = {'name': 'URL unavailable', 'message': self.message, 'status': 1, 'visible': self.public_incidents,
                       'component_id': self.component_id, 'component_status': self.status, 'notify': True}
             incident_request = requests.post('%s/incidents' % (self.api_url,), params=params, headers=self.headers)
             if incident_request.ok:
