@@ -150,6 +150,10 @@ class Configuration(object):
             self.logger.warning(self.message)
             self.status = st.COMPONENT_STATUS_PERFORMANCE_ISSUES
             return
+        except requests.exceptions.MissingSchema:
+            self.logger.info('No schema specified - using default http://')
+            self.endpoint_url = 'http://%s' % self.endpoint_url
+            self.evaluate()
 
         # We initially assume the API is healthy.
         self.status = st.COMPONENT_STATUS_OPERATIONAL
