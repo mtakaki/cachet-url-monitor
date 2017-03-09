@@ -54,6 +54,13 @@ def get_current_status(endpoint_url, component_id, headers):
         raise ComponentNonexistentError(component_id)
 
 
+def normalize_url(url):
+    """If passed url doesn't include schema return it with default one - http."""
+    if not url.lower().startswith('http'):
+        return 'http://%s' % url
+    return url
+
+
 class Configuration(object):
     """Represents a configuration file, but it also includes the functionality
     of assessing the API and pushing the results to cachet.
@@ -75,6 +82,7 @@ class Configuration(object):
 
         self.endpoint_method = os.environ.get('ENDPOINT_METHOD') or self.data['endpoint']['method']
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
+        self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
@@ -150,10 +158,6 @@ class Configuration(object):
             self.logger.warning(self.message)
             self.status = st.COMPONENT_STATUS_PERFORMANCE_ISSUES
             return
-        except requests.exceptions.MissingSchema:
-            self.logger.info('No schema specified - using default http://')
-            self.endpoint_url = 'http://%s' % self.endpoint_url
-            self.evaluate()
 
         # We initially assume the API is healthy.
         self.status = st.COMPONENT_STATUS_OPERATIONAL
