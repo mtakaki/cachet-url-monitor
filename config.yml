@@ -9,6 +9,7 @@ endpoint:
       threshold: 1
     - type: REGEX
       regex: '.*(<body).*'
+  allowed_fails: 0
 cachet:
   api_url: https://demo.cachethq.io/api/v1
   token: my_token

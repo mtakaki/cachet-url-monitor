@@ -28,6 +28,7 @@ endpoint:
       threshold: 1
     - type: REGEX
       regex: ".*<body>.*"
+  allowed_fails: 0
 cachet:
   api_url: http://status.cachethq.io/api/v1
   token: my_token
@@ -48,6 +49,7 @@ frequency: 30
         - **HTTP_STATUS**, we will verify if the response status code matches what we expect.
         - **LATENCY**, we measure how long the request took to get a response and fail if it's above the threshold. The unit is in seconds.
         - **REGEX**, we verify if the response body matches the given regex.
+    - **allowed_fails**, create incident/update component status only after specified amount of failed connection trials.
 - **cachet**, this is the settings for our cachet server.
     - **api_url**, the cachet API endpoint.
     - **token**, the API token.
