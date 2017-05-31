@@ -54,6 +54,13 @@ def get_current_status(endpoint_url, component_id, headers):
         raise ComponentNonexistentError(component_id)
 
 
+def normalize_url(url):
+    """If passed url doesn't include schema return it with default one - http."""
+    if not url.lower().startswith('http'):
+        return 'http://%s' % url
+    return url
+
+
 class Configuration(object):
     """Represents a configuration file, but it also includes the functionality
     of assessing the API and pushing the results to cachet.
@@ -75,11 +82,13 @@ class Configuration(object):
 
         self.endpoint_method = os.environ.get('ENDPOINT_METHOD') or self.data['endpoint']['method']
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
+        self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
         self.component_id = os.environ.get('CACHET_COMPONENT_ID') or self.data['cachet']['component_id']
         self.metric_id = os.environ.get('CACHET_METRIC_ID') or self.data['cachet'].get('metric_id')
+        self.default_metric_value = self.get_default_metric_value()
 
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = get_current_status(self.api_url, self.component_id, self.headers)
@@ -92,6 +101,11 @@ class Configuration(object):
         self.expectations = [Expectaction.create(expectation) for expectation in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
+
+    def get_default_metric_value(self):
+        """Returns default value for configured metric."""
+        get_metric_request = requests.get('%s/metrics/%s' % (self.api_url, self.metric_id), headers=self.headers)
+        return get_metric_request.json()['data']['default_value']
 
     def get_action(self):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
@@ -151,10 +165,6 @@ class Configuration(object):
             self.logger.warning(self.message)
             self.status = st.COMPONENT_STATUS_PERFORMANCE_ISSUES
             return
-        except requests.exceptions.MissingSchema:
-            self.logger.info('No schema specified - using default http://')
-            self.endpoint_url = 'http://%s' % self.endpoint_url
-            self.evaluate()
 
         # We initially assume the API is healthy.
         self.status = st.COMPONENT_STATUS_OPERATIONAL
@@ -199,17 +209,18 @@ class Configuration(object):
     def push_metrics(self):
         """Pushes the total amount of seconds the request took to get a response from the URL.
         It only will send a request if the metric id was set in the configuration.
+        In case of failed connection trial pushes the default metric value.
         """
         if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
-            params = {'id': self.metric_id, 'value': self.request.elapsed.total_seconds(),
+            value = self.default_metric_value if self.status != 1 else self.request.elapsed.total_seconds()
+            params = {'id': self.metric_id, 'value': value,
                       'timestamp': self.current_timestamp}
             metrics_request = requests.post('%s/metrics/%d/points' % (self.api_url, self.metric_id), params=params,
                                             headers=self.headers)
 
             if metrics_request.ok:
                 # Successful metrics upload
-                self.logger.info('Metric uploaded: %.6f seconds' %
-                                 (self.request.elapsed.total_seconds(),))
+                self.logger.info('Metric uploaded: %.6f seconds' % (value,))
             else:
                 self.logger.warning('Metric upload failed with status [%d]' %
                                     (metrics_request.status_code,))
