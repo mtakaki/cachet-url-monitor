@@ -201,7 +201,14 @@ class Configuration(object):
         It only will send a request if the metric id was set in the configuration.
         """
         if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
-            params = {'id': self.metric_id, 'value': self.request.elapsed.total_seconds(),
+            # Per #38, cachet can't convert metrics to milliseconds, so we push the elapsed time in seconds
+            # if the user configured it as so.
+            if 'metric_milliseconds' in self.data['cachet'] and self.data['cachet']['metric_milliseconds']:
+                elapsed_time = self.request.elapsed.total_seconds() * 1000
+            else:
+                elapsed_time = self.request.elapsed.total_seconds()
+
+            params = {'id': self.metric_id, 'value': elapsed_time,
                       'timestamp': self.current_timestamp}
             metrics_request = requests.post('%s/metrics/%d/points' % (self.api_url, self.metric_id), params=params,
                                             headers=self.headers)

@@ -3,6 +3,7 @@ import unittest
 
 import mock
 import re
+
 from cachet_url_monitor.configuration import HttpStatus, Regex
 from cachet_url_monitor.configuration import Latency
 

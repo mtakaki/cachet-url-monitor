@@ -2,9 +2,10 @@
 import sys
 import unittest
 
-import cachet_url_monitor.status
 import mock
 from requests import ConnectionError, HTTPError, Timeout
+
+import cachet_url_monitor.status
 
 sys.modules['requests'] = mock.Mock()
 sys.modules['logging'] = mock.Mock()

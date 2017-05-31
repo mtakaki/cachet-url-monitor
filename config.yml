@@ -1,7 +1,7 @@
 endpoint:
-  url: http://localhost:8080/swagger
+  url: https://google.com
   method: GET
-  timeout: 0.01
+  timeout: 1
   expectation:
     - type: HTTP_STATUS
       status: 200
@@ -17,4 +17,5 @@ cachet:
   action:
     - CREATE_INCIDENT
     - UPDATE_STATUS
+  metric_milliseconds: true
 frequency: 30
