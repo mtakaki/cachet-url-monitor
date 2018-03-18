@@ -24,7 +24,7 @@ class ConfigurationTest(unittest.TestCase):
             get_return = mock.Mock()
             get_return.ok = True
             get_return.json = mock.Mock()
-            get_return.json.return_value = {'data': {'status': 1}}
+            get_return.json.return_value = {'data': {'status': 1, 'default_value': 0.5}}
             return get_return
 
         sys.modules['requests'].get = get
