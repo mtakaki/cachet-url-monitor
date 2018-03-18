@@ -2,9 +2,10 @@
 import sys
 import unittest
 
-import cachet_url_monitor.status
 import mock
 from requests import ConnectionError, HTTPError, Timeout
+
+import cachet_url_monitor.status
 
 sys.modules['requests'] = mock.Mock()
 sys.modules['logging'] = mock.Mock()
@@ -38,7 +39,7 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].HTTPError = HTTPError
 
     def test_init(self):
-        self.assertEqual(len(self.configuration.data), 3, 'Configuration data size is incorrect')
+        self.assertEqual(len(self.configuration.data), 4, 'Number of root elements in config.yml is incorrect')
         self.assertEquals(len(self.configuration.expectations), 3, 'Number of expectations read from file is incorrect')
         self.assertDictEqual(self.configuration.headers, {'X-Cachet-Token': 'token2'}, 'Header was not set correctly')
         self.assertEquals(self.configuration.api_url, 'https://demo.cachethq.io/api/v1',
