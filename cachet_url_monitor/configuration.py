@@ -41,6 +41,16 @@ class ComponentNonexistentError(Exception):
         return repr('Component with id [%d] does not exist.' % (self.component_id,))
 
 
+class MetricNonexistentError(Exception):
+    """Exception raised when the component does not exist."""
+
+    def __init__(self, metric_id):
+        self.metric_id = metric_id
+
+    def __str__(self):
+        return repr('Metric with id [%d] does not exist.' % (self.metric_id,))
+
+
 def get_current_status(endpoint_url, component_id, headers):
     """Retrieves the current status of the component that is being monitored. It will fail if the component does
     not exist or doesn't respond with the expected data.
@@ -89,7 +99,10 @@ class Configuration(object):
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
         self.component_id = os.environ.get('CACHET_COMPONENT_ID') or self.data['cachet']['component_id']
         self.metric_id = os.environ.get('CACHET_METRIC_ID') or self.data['cachet'].get('metric_id')
-        self.default_metric_value = self.get_default_metric_value()
+
+        if self.metric_id is not None:
+            self.default_metric_value = self.get_default_metric_value(self.metric_id)
+
         # The latency_unit configuration is not mandatory and we fallback to seconds, by default.
         self.latency_unit = os.environ.get('LATENCY_UNIT') or self.data['cachet'].get('latency_unit') or 's'
 
@@ -105,10 +118,14 @@ class Configuration(object):
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
-    def get_default_metric_value(self):
+    def get_default_metric_value(self, metric_id):
         """Returns default value for configured metric."""
-        get_metric_request = requests.get('%s/metrics/%s' % (self.api_url, self.metric_id), headers=self.headers)
-        return get_metric_request.json()['data']['default_value']
+        get_metric_request = requests.get('%s/metrics/%s' % (self.api_url, metric_id), headers=self.headers)
+
+        if get_metric_request.ok:
+            return get_metric_request.json()['data']['default_value']
+        else:
+            raise MetricNonexistentError(metric_id)
 
     def get_action(self):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
