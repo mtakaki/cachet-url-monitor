@@ -66,7 +66,7 @@ class HttpStatusTest(unittest.TestCase):
 
     def test_init_with_invalid_number(self):
         """Invalid values should just fail with a ValueError, as we can't convert it to int."""
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(ValueError):
             self.expectation = HttpStatus({'type': 'HTTP_STATUS', 'status_range': "foo"})
 
     def test_get_status_healthy(self):

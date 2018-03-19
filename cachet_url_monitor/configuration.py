@@ -294,9 +294,10 @@ class Expectaction(object):
 
 class HttpStatus(Expectaction):
     def __init__(self, configuration):
-        self.status_range = self.parse_range(configuration['status_range'])
+        self.status_range = HttpStatus.parse_range(configuration['status_range'])
 
-    def parse_range(self, range_string):
+    @staticmethod
+    def parse_range(range_string):
         statuses = range_string.split("-")
         if len(statuses) == 1:
             # When there was no range given, we should treat the first number as a single status check.
