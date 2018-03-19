@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+This file defines all the different status different values.
+These are all constants and are coupled to cachet's API configuration.
+"""
+
 
 COMPONENT_STATUS_OPERATIONAL = 1
 COMPONENT_STATUS_PERFORMANCE_ISSUES = 2

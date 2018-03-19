@@ -4,7 +4,7 @@ endpoint:
   timeout: 0.01
   expectation:
     - type: HTTP_STATUS
-      status: 200
+      status_range: 200-300
     - type: LATENCY
       threshold: 1
     - type: REGEX
@@ -19,3 +19,4 @@ cachet:
     - UPDATE_STATUS
   public_incidents: true
 frequency: 30
+latency_unit: ms
