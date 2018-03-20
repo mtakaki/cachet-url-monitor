@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+import re
 import unittest
 
 import mock
-import re
+import pytest
+
 from cachet_url_monitor.configuration import HttpStatus, Regex
 from cachet_url_monitor.configuration import Latency
 
@@ -51,10 +53,21 @@ class LatencyTest(unittest.TestCase):
 
 class HttpStatusTest(unittest.TestCase):
     def setUp(self):
-        self.expectation = HttpStatus({'type': 'HTTP_STATUS', 'status': 200})
+        self.expectation = HttpStatus({'type': 'HTTP_STATUS', 'status_range': "200-300"})
 
     def test_init(self):
-        assert self.expectation.status == 200
+        assert self.expectation.status_range == (200, 300)
+
+    def test_init_with_one_status(self):
+        """With only one value, we still expect a valid tuple"""
+        self.expectation = HttpStatus({'type': 'HTTP_STATUS', 'status_range': "200"})
+
+        assert self.expectation.status_range == (200, 201)
+
+    def test_init_with_invalid_number(self):
+        """Invalid values should just fail with a ValueError, as we can't convert it to int."""
+        with pytest.raises(ValueError):
+            self.expectation = HttpStatus({'type': 'HTTP_STATUS', 'status_range': "foo"})
 
     def test_get_status_healthy(self):
         request = mock.Mock()

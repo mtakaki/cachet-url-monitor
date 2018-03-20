@@ -4,11 +4,12 @@ endpoint:
   timeout: 0.01
   expectation:
     - type: HTTP_STATUS
-      status: 200
+      status_range: 200-300
     - type: LATENCY
       threshold: 1
     - type: REGEX
       regex: '.*(<body).*'
+  allowed_fails: 0
 cachet:
   api_url: https://demo.cachethq.io/api/v1
   token: my_token
@@ -19,3 +20,4 @@ cachet:
     - UPDATE_STATUS
   public_incidents: true
 frequency: 30
+latency_unit: ms

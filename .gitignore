@@ -11,3 +11,5 @@ share/
 MANIFEST
 dist/
 .idea
+.pytest_cache/
+pip-selfcheck.json

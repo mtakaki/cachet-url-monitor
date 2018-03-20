@@ -10,6 +10,7 @@ import requests
 from yaml import dump
 from yaml import load
 
+import latency_unit
 import status as st
 
 # This is the mandatory fields that must be in the configuration file in this
@@ -38,6 +39,16 @@ class ComponentNonexistentError(Exception):
 
     def __str__(self):
         return repr('Component with id [%d] does not exist.' % (self.component_id,))
+
+
+class MetricNonexistentError(Exception):
+    """Exception raised when the component does not exist."""
+
+    def __init__(self, metric_id):
+        self.metric_id = metric_id
+
+    def __str__(self):
+        return repr('Metric with id [%d] does not exist.' % (self.metric_id,))
 
 
 def get_current_status(endpoint_url, component_id, headers):
@@ -70,6 +81,8 @@ class Configuration(object):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
+        self.current_fails = 0
+        self.trigger_update = True
 
         # Exposing the configuration to confirm it's parsed as expected.
         self.print_out()
@@ -84,28 +97,39 @@ class Configuration(object):
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
         self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
+        self.allowed_fails = os.environ.get('ALLOWED_FAILS') or self.data['endpoint'].get('allowed_fails') or 0
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
         self.component_id = os.environ.get('CACHET_COMPONENT_ID') or self.data['cachet']['component_id']
         self.metric_id = os.environ.get('CACHET_METRIC_ID') or self.data['cachet'].get('metric_id')
-        self.default_metric_value = self.get_default_metric_value()
+
+        if self.metric_id is not None:
+            self.default_metric_value = self.get_default_metric_value(self.metric_id)
+
+        # The latency_unit configuration is not mandatory and we fallback to seconds, by default.
+        self.latency_unit = os.environ.get('LATENCY_UNIT') or self.data['cachet'].get('latency_unit') or 's'
 
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = get_current_status(self.api_url, self.component_id, self.headers)
         self.previous_status = self.status
 
         # Get remaining settings
-        self.public_incidents = int(os.environ.get('CACHET_PUBLIC_INCIDENTS') or self.data['cachet']['public_incidents'])
+        self.public_incidents = int(
+            os.environ.get('CACHET_PUBLIC_INCIDENTS') or self.data['cachet']['public_incidents'])
 
         self.logger.info('Monitoring URL: %s %s' % (self.endpoint_method, self.endpoint_url))
         self.expectations = [Expectaction.create(expectation) for expectation in self.data['endpoint']['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
-    def get_default_metric_value(self):
+    def get_default_metric_value(self, metric_id):
         """Returns default value for configured metric."""
-        get_metric_request = requests.get('%s/metrics/%s' % (self.api_url, self.metric_id), headers=self.headers)
-        return get_metric_request.json()['data']['default_value']
+        get_metric_request = requests.get('%s/metrics/%s' % (self.api_url, metric_id), headers=self.headers)
+
+        if get_metric_request.ok:
+            return get_metric_request.json()['data']['default_value']
+        else:
+            raise MetricNonexistentError(metric_id)
 
     def get_action(self):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
@@ -187,6 +211,21 @@ class Configuration(object):
         del temporary_data['cachet']['token']
         return dump(temporary_data, default_flow_style=False)
 
+    def if_trigger_update(self):
+        """
+        Checks if update should be triggered - trigger it for all operational states
+        and only for non-operational ones above the configured threshold (allowed_fails).
+        """
+
+        if self.status != 1:
+            self.current_fails = self.current_fails + 1
+            self.logger.info('Failure #%s with threshold set to %s' % (self.current_fails, self.allowed_fails))
+            if self.current_fails <= self.allowed_fails:
+                self.trigger_update = False
+                return
+        self.current_fails = 0
+        self.trigger_update = True
+
     def push_status(self):
         """Pushes the status of the component to the cachet server. It will update the component
         status based on the previous call to evaluate().
@@ -194,6 +233,9 @@ class Configuration(object):
         if self.previous_status == self.status:
             return
         self.previous_status = self.status
+
+        if not self.trigger_update:
+            return
 
         params = {'id': self.component_id, 'status': self.status}
         component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
@@ -212,7 +254,9 @@ class Configuration(object):
         In case of failed connection trial pushes the default metric value.
         """
         if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
-            value = self.default_metric_value if self.status != 1 else self.request.elapsed.total_seconds()
+            # We convert the elapsed time from the request, in seconds, to the configured unit.
+            value = self.default_metric_value if self.status != 1 else latency_unit.convert_to_unit(self.latency_unit,
+                                                                                                    self.request.elapsed.total_seconds())
             params = {'id': self.metric_id, 'value': value,
                       'timestamp': self.current_timestamp}
             metrics_request = requests.post('%s/metrics/%d/points' % (self.api_url, self.metric_id), params=params,
@@ -229,9 +273,12 @@ class Configuration(object):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
         or updates the existing incident once it becomes healthy again.
         """
+        if not self.trigger_update:
+            return
         if hasattr(self, 'incident_id') and self.status == st.COMPONENT_STATUS_OPERATIONAL:
             # If the incident already exists, it means it was unhealthy but now it's healthy again.
-            params = {'status': 4, 'visible': self.public_incidents, 'component_id': self.component_id, 'component_status': self.status,
+            params = {'status': 4, 'visible': self.public_incidents, 'component_id': self.component_id,
+                      'component_status': self.status,
                       'notify': True}
 
             incident_request = requests.put('%s/incidents/%d' % (self.api_url, self.incident_id), params=params,
@@ -292,10 +339,20 @@ class Expectaction(object):
 
 class HttpStatus(Expectaction):
     def __init__(self, configuration):
-        self.status = configuration['status']
+        self.status_range = HttpStatus.parse_range(configuration['status_range'])
+
+    @staticmethod
+    def parse_range(range_string):
+        statuses = range_string.split("-")
+        if len(statuses) == 1:
+            # When there was no range given, we should treat the first number as a single status check.
+            return (int(statuses[0]), int(statuses[0]) + 1)
+        else:
+            # We shouldn't look into more than one value, as this is a range value.
+            return (int(statuses[0]), int(statuses[1]))
 
     def get_status(self, response):
-        if response.status_code == self.status:
+        if response.status_code >= self.status_range[0] and response.status_code < self.status_range[1]:
             return st.COMPONENT_STATUS_OPERATIONAL
         else:
             return st.COMPONENT_STATUS_PARTIAL_OUTAGE
@@ -304,7 +361,7 @@ class HttpStatus(Expectaction):
         return 'Unexpected HTTP status (%s)' % (response.status_code,)
 
     def __str__(self):
-        return repr('HTTP status: %s' % (self.status,))
+        return repr('HTTP status range: %s' % (self.status_range,))
 
 
 class Latency(Expectaction):

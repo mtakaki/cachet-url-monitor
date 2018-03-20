@@ -25,6 +25,7 @@ class Agent(object):
         """
         self.configuration.evaluate()
         self.configuration.push_metrics()
+        self.configuration.if_trigger_update()
 
         for decorator in self.decorators:
             decorator.execute(self.configuration)
