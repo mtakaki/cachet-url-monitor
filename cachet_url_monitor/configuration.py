@@ -81,6 +81,8 @@ class Configuration(object):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
         self.data = load(file(self.config_file, 'r'))
+        self.current_fails = 0
+        self.trigger_update = True
 
         # Exposing the configuration to confirm it's parsed as expected.
         self.print_out()
@@ -95,6 +97,7 @@ class Configuration(object):
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
         self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
+        self.allowed_fails = os.environ.get('ALLOWED_FAILS') or self.data['endpoint'].get('allowed_fails') or 0
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
         self.component_id = os.environ.get('CACHET_COMPONENT_ID') or self.data['cachet']['component_id']
@@ -207,10 +210,27 @@ class Configuration(object):
         del temporary_data['cachet']['token']
         return dump(temporary_data, default_flow_style=False)
 
+    def if_trigger_update(self):
+        """
+        Checks if update should be triggered - trigger it for all operational states
+        and only for non-operational ones above the configured threshold (allowed_fails).
+        """
+
+        if self.status != 1:
+            self.current_fails = self.current_fails + 1
+            self.logger.info('Failure #%s with threshold set to %s' % (self.current_fails, self.allowed_fails))
+            if self.current_fails <= self.allowed_fails:
+                self.trigger_update = False
+                return
+        self.current_fails = 0
+        self.trigger_update = True
+
     def push_status(self):
         """Pushes the status of the component to the cachet server. It will update the component
         status based on the previous call to evaluate().
         """
+        if not self.trigger_update:
+            return
         params = {'id': self.component_id, 'status': self.status}
         component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
                                          headers=self.headers)
@@ -247,6 +267,8 @@ class Configuration(object):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
         or updates the existing incident once it becomes healthy again.
         """
+        if not self.trigger_update:
+            return
         if hasattr(self, 'incident_id') and self.status == st.COMPONENT_STATUS_OPERATIONAL:
             # If the incident already exists, it means it was unhealthy but now it's healthy again.
             params = {'status': 4, 'visible': self.public_incidents, 'component_id': self.component_id,
