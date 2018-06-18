@@ -38,8 +38,8 @@ cachet:
     - CREATE_INCIDENT
     - UPDATE_STATUS
   public_incidents: true
+  latency_unit: ms
 frequency: 30
-latency_unit: ms
 ```
 
 - **endpoint**, the configuration about the URL that will be monitored.
