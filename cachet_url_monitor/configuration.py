@@ -111,6 +111,7 @@ class Configuration(object):
 
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = get_current_status(self.api_url, self.component_id, self.headers)
+        self.previous_status = self.status
 
         # Get remaining settings
         self.public_incidents = int(
@@ -229,8 +230,13 @@ class Configuration(object):
         """Pushes the status of the component to the cachet server. It will update the component
         status based on the previous call to evaluate().
         """
+        if self.previous_status == self.status:
+            return
+        self.previous_status = self.status
+
         if not self.trigger_update:
             return
+
         params = {'id': self.component_id, 'status': self.status}
         component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
                                          headers=self.headers)
