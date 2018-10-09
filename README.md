@@ -34,12 +34,12 @@ cachet:
   token: my_token
   component_id: 1
   metric_id: 1
+  latency_unit: ms
   action:
     - CREATE_INCIDENT
     - UPDATE_STATUS
   public_incidents: true
 frequency: 30
-latency_unit: ms
 ```
 
 - **endpoint**, the configuration about the URL that will be monitored.
@@ -56,12 +56,12 @@ latency_unit: ms
     - **token**, the API token.
     - **component_id**, the id of the component we're monitoring. This will be used to update the status of the component.
     - **metric_id**, this will be used to store the latency of the API. If this is not set, it will be ignored.
+    - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
     - **action**, the action to be done when one of the expectations fails. This is optional and if left blank, nothing will be done to the component.
         - **CREATE_INCIDENT**, we will create an incident when the expectation fails.
         - **UPDATE_STATUS**, updates the component status
     - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
 - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
-- **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
 
 ## Setting up
 
