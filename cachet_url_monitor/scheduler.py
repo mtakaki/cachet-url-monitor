@@ -2,6 +2,8 @@
 import logging
 import sys
 import time
+import copy
+from yaml import load
 
 import schedule
 
@@ -77,6 +79,20 @@ class Scheduler(object):
             time.sleep(self.configuration.data['frequency'])
 
 
+def adapter(config_file):
+    config = load(open(config_file, 'r'))
+    new_config = []
+    for endpoint in config['endpoints']:
+        new_endpoint = copy.deepcopy(config)
+        new_endpoint['cachet']['component_id'] = endpoint.pop('component_id')
+        new_endpoint['cachet']['metric_id'] = endpoint.pop('metric_id')
+        new_endpoint['endpoint'] = endpoint
+        new_endpoint.pop('endpoints')
+
+        new_config.append(new_endpoint)
+
+    return new_config
+
 if __name__ == "__main__":
     FORMAT = "%(levelname)9s [%(asctime)-15s] %(name)s - %(message)s"
     logging.basicConfig(format=FORMAT, level=logging.INFO)
@@ -87,5 +103,7 @@ if __name__ == "__main__":
         logging.fatal('Missing configuration file argument')
         sys.exit(1)
 
-    scheduler = Scheduler(sys.argv[1])
-    scheduler.start()
+    endpoints = adapter(sys.argv[1])
+    for endpoint in endpoints:
+        scheduler = Scheduler(endpoint)
+        scheduler.start()

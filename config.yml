@@ -1,20 +1,20 @@
 endpoint:
-  url: http://localhost:8080/swagger
-  method: GET
-  timeout: 0.01
-  expectation:
-    - type: HTTP_STATUS
-      status_range: 200-300
-    - type: LATENCY
-      threshold: 1
-    - type: REGEX
-      regex: '.*(<body).*'
-  allowed_fails: 0
+  - url: http://localhost:8080/swagger
+    method: GET
+    timeout: 0.01
+    component_id: 1
+    #metric_id: 1
+    expectation:
+      - type: HTTP_STATUS
+        status_range: 200-300
+      - type: LATENCY
+        threshold: 1
+      - type: REGEX
+        regex: '.*(<body).*'
+    allowed_fails: 0
 cachet:
   api_url: https://demo.cachethq.io/api/v1
   token: my_token
-  component_id: 1
-  #metric_id: 1
   action:
     - CREATE_INCIDENT
     - UPDATE_STATUS

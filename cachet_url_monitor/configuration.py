@@ -77,10 +77,9 @@ class Configuration(object):
     of assessing the API and pushing the results to cachet.
     """
 
-    def __init__(self, config_file):
+    def __init__(self, config):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
-        self.config_file = config_file
-        self.data = load(file(self.config_file, 'r'))
+        self.data = config
         self.current_fails = 0
         self.trigger_update = True
 
@@ -163,7 +162,7 @@ class Configuration(object):
 
         if len(configuration_errors) > 0:
             raise ConfigurationValidationError(
-                'Config file [%s] failed validation. Missing keys: %s' % (self.config_file,
+                'Config file [%s] failed validation. Missing keys: %s' % (self.data,
                                                                           ', '.join(configuration_errors)))
 
     def evaluate(self):
@@ -343,7 +342,7 @@ class HttpStatus(Expectaction):
 
     @staticmethod
     def parse_range(range_string):
-        statuses = range_string.split("-")
+        statuses = str(range_string).split("-")
         if len(statuses) == 1:
             # When there was no range given, we should treat the first number as a single status check.
             return (int(statuses[0]), int(statuses[0]) + 1)
