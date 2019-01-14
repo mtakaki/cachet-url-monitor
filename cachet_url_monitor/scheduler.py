@@ -74,9 +74,6 @@ class Scheduler(object):
     def start(self):
         self.agent.start()
         self.logger.info('Starting monitor agent...')
-        while not self.stop:
-            schedule.run_pending()
-            time.sleep(self.configuration.data['frequency'])
 
 
 def adapter(config_file):
@@ -107,3 +104,7 @@ if __name__ == "__main__":
     for endpoint in endpoints:
         scheduler = Scheduler(endpoint)
         scheduler.start()
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

@@ -145,7 +145,7 @@ class Configuration(object):
         ConfigurationValidationError is raised. Otherwise nothing will happen.
         """
         configuration_errors = []
-        for key, sub_entries in configuration_mandatory_fields.iteritems():
+        for key, sub_entries in configuration_mandatory_fields.items():
             if key not in self.data:
                 configuration_errors.append(key)
 
