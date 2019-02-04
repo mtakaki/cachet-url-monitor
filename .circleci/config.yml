@@ -38,7 +38,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            py.test tests
+            pipenv run "py.test tests"
 
       - store_artifacts:
           path: test-reports
