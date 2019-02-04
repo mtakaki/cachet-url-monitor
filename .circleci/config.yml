@@ -26,8 +26,8 @@ jobs:
           name: install dependencies
           command: |
             sudo pip install virtualenv
-            virtualenv ~/repo
-            source ~/repo/bin/activate
+            virtualenv .
+            source bin/activate
             pip install -r dev_requirements.txt
 
       - save_cache:
