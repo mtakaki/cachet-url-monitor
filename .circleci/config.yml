@@ -25,10 +25,10 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            sudo pip install pipenv
-            pipenv install
-            pipenv install -r dev_requirements.txt
-            pipenv install pytest
+            sudo pip install virtualenv
+            virtualenv ~/repo
+            source ~/repo/bin/activate
+            pip install -r dev_requirements.txt
 
       - save_cache:
           paths:
@@ -38,8 +38,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            . venv/bin/activate
-            pipenv run "pytest tests"
+            . bin/activate
+            py.test tests
 
       - store_artifacts:
           path: test-reports
