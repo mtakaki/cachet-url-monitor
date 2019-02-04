@@ -28,6 +28,7 @@ jobs:
             sudo pip install pipenv
             pipenv install
             pipenv install -r dev_requirements.txt
+            pipenv install pytest
 
       - save_cache:
           paths:
@@ -38,7 +39,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            pipenv run "py.test tests"
+            pipenv run "pytest tests"
 
       - store_artifacts:
           path: test-reports
