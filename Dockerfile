@@ -1,4 +1,4 @@
-FROM python:2.7-alpine
+FROM python:3.7.2-alpine
 MAINTAINER Mitsuo Takaki <mitsuotakaki@gmail.com>
 
 WORKDIR /usr/src/app

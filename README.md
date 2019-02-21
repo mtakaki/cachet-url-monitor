@@ -83,16 +83,9 @@ $ python cachet_url_monitor/scheduler.py config.yml
 
 ## Docker
 
-You can run the agent in docker, so you won't need to worry about installing python, virtualenv, or any other dependency into your OS. The `Dockerfile` and `docker-compose.yml` files are already checked in and it's ready to be used.
+You can run the agent in docker, so you won't need to worry about installing python, virtualenv, or any other dependency into your OS. The `Dockerfile` is already checked in and it's ready to be used.
 
-To start the agent in a container using docker compose:
-
-```
-$ docker-compose build
-$ docker-compose up
-```
-
-Or pulling directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
+You have two choices, checking this repo out and building the docker image or it can be pulled directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
 
 ```
 $ docker pull mtakaki/cachet-url-monitor

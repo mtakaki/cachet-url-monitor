@@ -5,7 +5,7 @@ import time
 
 import schedule
 
-from configuration import Configuration
+from cachet_url_monitor.configuration import Configuration
 
 
 class Agent(object):

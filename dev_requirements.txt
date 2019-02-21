@@ -1,4 +1,4 @@
-PyYAML==3.12
+PyYAML==3.13
 codacy-coverage==1.2.18
 ipython==4.2.0
 mock==2.0.0
