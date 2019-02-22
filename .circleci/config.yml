@@ -29,6 +29,7 @@ jobs:
             virtualenv .
             source bin/activate
             pip3 install -r dev_requirements.txt
+            python3 setup.py install
 
       - save_cache:
           paths:
