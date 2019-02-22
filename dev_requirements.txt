@@ -1,9 +1,9 @@
-PyYAML==3.13
+PyYAML==4.2b1
 codacy-coverage==1.2.18
 ipython==4.2.0
 mock==2.0.0
 pudb==2016.1
 pytest==3.4.2
 pytest-cov==2.5.1
-requests==2.18.4
+requests==2.21.0
 schedule==0.5.0
