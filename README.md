@@ -1,6 +1,5 @@
-[![Stories in Ready](https://badge.waffle.io/mtakaki/cachet-url-monitor.png?label=ready&title=Ready)](https://waffle.io/mtakaki/cachet-url-monitor)
 # Status
-![Build Status](https://codeship.com/projects/5a246b70-f088-0133-9388-2640b49afa9e/status?branch=master)
+[![CircleCI](https://circleci.com/gh/mtakaki/cachet-url-monitor/tree/master.svg?style=svg)](https://circleci.com/gh/mtakaki/cachet-url-monitor/tree/master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/cachet-url-monitor/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/cachet-url-monitor?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ef4123130ef4140b8ea7b94d460ba64)](https://www.codacy.com/app/mitsuotakaki/cachet-url-monitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mtakaki/cachet-url-monitor&amp;utm_campaign=Badge_Grade)
 [![Docker pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
