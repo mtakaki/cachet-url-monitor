@@ -14,3 +14,4 @@ dist/
 .pytest_cache/
 pip-selfcheck.json
 .eggs
+test-reports/

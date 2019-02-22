@@ -40,7 +40,10 @@ jobs:
           name: run tests
           command: |
             . bin/activate
-            py.test tests
+            py.test tests --junitxml=test-reports/junit.xml
+
+      - store_test_results:
+          path: test-reports
 
       - store_artifacts:
           path: test-reports
