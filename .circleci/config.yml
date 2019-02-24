@@ -30,6 +30,7 @@ jobs:
             source bin/activate
             pip3 install -r dev_requirements.txt
             python3 setup.py install
+            pip3 install coveralls
 
       - save_cache:
           paths:
@@ -40,7 +41,10 @@ jobs:
           name: run tests
           command: |
             . bin/activate
-            py.test tests --junitxml=test-reports/junit.xml
+            py.test tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor
+            coveralls
+            coverage xml
+            python-codacy-coverage -r coverage.xml
 
       - store_test_results:
           path: test-reports
