@@ -10,10 +10,11 @@ import cachet_url_monitor.status
 sys.modules['requests'] = mock.Mock()
 sys.modules['logging'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
-from test.test_support import EnvironmentVarGuard
+import os
 
 
 class ConfigurationTest(unittest.TestCase):
+    @mock.patch.dict(os.environ, {'CACHET_TOKEN': 'token2'})
     def setUp(self):
         def getLogger(name):
             self.mock_logger = mock.Mock()
@@ -29,9 +30,6 @@ class ConfigurationTest(unittest.TestCase):
             return get_return
 
         sys.modules['requests'].get = get
-
-        self.env = EnvironmentVarGuard()
-        self.env.set('CACHET_TOKEN', 'token2')
 
         self.configuration = Configuration('config.yml')
         sys.modules['requests'].Timeout = Timeout

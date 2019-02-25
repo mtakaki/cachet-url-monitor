@@ -10,8 +10,8 @@ import requests
 from yaml import dump
 from yaml import load
 
-import latency_unit
-import status as st
+import cachet_url_monitor.latency_unit as latency_unit
+import cachet_url_monitor.status as st
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
@@ -80,7 +80,7 @@ class Configuration(object):
     def __init__(self, config_file):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
-        self.data = load(file(self.config_file, 'r'))
+        self.data = load(open(self.config_file, 'r'))
         self.current_fails = 0
         self.trigger_update = True
 
@@ -111,6 +111,7 @@ class Configuration(object):
 
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = get_current_status(self.api_url, self.component_id, self.headers)
+        self.previous_status = self.status
 
         # Get remaining settings
         self.public_incidents = int(
@@ -145,7 +146,7 @@ class Configuration(object):
         ConfigurationValidationError is raised. Otherwise nothing will happen.
         """
         configuration_errors = []
-        for key, sub_entries in configuration_mandatory_fields.iteritems():
+        for key, sub_entries in configuration_mandatory_fields.items():
             if key not in self.data:
                 configuration_errors.append(key)
 
@@ -229,8 +230,13 @@ class Configuration(object):
         """Pushes the status of the component to the cachet server. It will update the component
         status based on the previous call to evaluate().
         """
+        if self.previous_status == self.status:
+            return
+        self.previous_status = self.status
+
         if not self.trigger_update:
             return
+
         params = {'id': self.component_id, 'status': self.status}
         component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
                                          headers=self.headers)
