@@ -264,7 +264,7 @@ class Configuration(object):
 
             if metrics_request.ok:
                 # Successful metrics upload
-                self.logger.info('Metric uploaded: %.6f seconds' % (value,))
+                self.logger.info('Metric uploaded: %.6f %s' % (value, self.latency_unit))
             else:
                 self.logger.warning('Metric upload failed with status [%d]' %
                                     (metrics_request.status_code,))
