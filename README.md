@@ -19,6 +19,8 @@ This project is available at PyPI: [https://pypi.python.org/pypi/cachet-url-moni
 endpoint:
   url: http://www.google.com
   method: GET
+  header:
+    SOME-HEADER: SOME-VALUE
   timeout: 1 # seconds
   expectation:
     - type: HTTP_STATUS
@@ -44,6 +46,7 @@ frequency: 30
 - **endpoint**, the configuration about the URL that will be monitored.
     - **url**, the URL that is going to be monitored.
     - **method**, the HTTP method that will be used by the monitor.
+    - **header**, client header passed to the request. Remove if you do not want to pass a header.
     - **timeout**, how long we'll wait to consider the request failed. The unit of it is seconds.
     - **expectation**, the list of expectations set for the URL.
         - **HTTP_STATUS**, we will verify if the response status code falls into the expected range. Please keep in mind the range is inclusive on the first number and exclusive on the second number. If just one value is specified, it will default to only the given value, for example `200` will be converted to `200-201`. 
