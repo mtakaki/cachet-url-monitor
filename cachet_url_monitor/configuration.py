@@ -97,7 +97,7 @@ class Configuration(object):
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
         self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
-        self.endpoint_header = os.environ.get('HEADER') or self.data['endpoint'].get('header') or None
+        self.endpoint_header = self.data['endpoint'].get('header') or None
         self.allowed_fails = os.environ.get('ALLOWED_FAILS') or self.data['endpoint'].get('allowed_fails') or 0
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
