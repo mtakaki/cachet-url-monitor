@@ -1,6 +1,8 @@
 endpoint:
   url: http://localhost:8080/swagger
   method: GET
+  header:
+    SOME-HEADER: SOME-VALUE
   timeout: 0.01
   expectation:
     - type: HTTP_STATUS

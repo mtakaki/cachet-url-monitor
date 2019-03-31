@@ -97,6 +97,7 @@ class Configuration(object):
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
         self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
+        self.endpoint_header = self.data['endpoint'].get('header') or None
         self.allowed_fails = os.environ.get('ALLOWED_FAILS') or self.data['endpoint'].get('allowed_fails') or 0
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
@@ -172,7 +173,10 @@ class Configuration(object):
         according to the expectation results.
         """
         try:
-            self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
+            if self.endpoint_header is not None:
+              self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header)
+            else:
+              self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
             self.current_timestamp = int(time.time())
         except requests.ConnectionError:
             self.message = 'The URL is unreachable: %s %s' % (self.endpoint_method, self.endpoint_url)
