@@ -60,7 +60,7 @@ def get_current_status(endpoint_url, component_id, headers):
 
     if get_status_request.ok:
         # The component exists.
-        return get_status_request.json()['data']['status']
+        return int(get_status_request.json()['data']['status'])
     else:
         raise ComponentNonexistentError(component_id)
 
