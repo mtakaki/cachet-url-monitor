@@ -241,6 +241,11 @@ class Configuration(object):
         if not self.trigger_update:
             return
 
+        self.api_component_status = get_current_status(self.api_url, self.component_id, self.headers)
+
+        if self.status == self.api_component_status:
+            return
+
         params = {'id': self.component_id, 'status': self.status}
         component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
                                          headers=self.headers)
