@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-from distutils.core import setup
+#from distutils.core import setup
+from setuptools import setup
 
 setup(name='cachet-url-monitor',
-      version='0.4',
+      version='1.4',
       description='Cachet URL monitor plugin',
       author='Mitsuo Takaki',
       author_email='mitsuotakaki@gmail.com',
@@ -13,5 +14,7 @@ setup(name='cachet-url-monitor',
           'requests',
           'yaml',
           'schedule',
-          ]
-     )
+      ],
+      setup_requires=["pytest-runner"],
+      tests_require=["pytest"]
+      )

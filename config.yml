@@ -1,6 +1,8 @@
 endpoint:
   - url: http://localhost:8080/swagger
     method: GET
+    header:
+      SOME-HEADER: SOME-VALUE
     timeout: 0.01
     component_id: 1
     #metric_id: 1
@@ -19,5 +21,5 @@ cachet:
     - CREATE_INCIDENT
     - UPDATE_STATUS
   public_incidents: true
+  latency_unit: ms
 frequency: 30
-latency_unit: ms

@@ -10,10 +10,11 @@ import cachet_url_monitor.status
 sys.modules['requests'] = mock.Mock()
 sys.modules['logging'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
-from test.test_support import EnvironmentVarGuard
+import os
 
 
 class ConfigurationTest(unittest.TestCase):
+    @mock.patch.dict(os.environ, {'CACHET_TOKEN': 'token2'})
     def setUp(self):
         def getLogger(name):
             self.mock_logger = mock.Mock()
@@ -30,26 +31,42 @@ class ConfigurationTest(unittest.TestCase):
 
         sys.modules['requests'].get = get
 
-        self.env = EnvironmentVarGuard()
-        self.env.set('CACHET_TOKEN', 'token2')
-
         self.configuration = Configuration('config.yml')
         sys.modules['requests'].Timeout = Timeout
         sys.modules['requests'].ConnectionError = ConnectionError
         sys.modules['requests'].HTTPError = HTTPError
 
     def test_init(self):
-        self.assertEqual(len(self.configuration.data), 4, 'Number of root elements in config.yml is incorrect')
+        self.assertEqual(len(self.configuration.data), 3, 'Number of root elements in config.yml is incorrect')
         self.assertEquals(len(self.configuration.expectations), 3, 'Number of expectations read from file is incorrect')
         self.assertDictEqual(self.configuration.headers, {'X-Cachet-Token': 'token2'}, 'Header was not set correctly')
         self.assertEquals(self.configuration.api_url, 'https://demo.cachethq.io/api/v1',
                           'Cachet API URL was set incorrectly')
+        self.assertDictEqual(self.configuration.endpoint_header, {'SOME-HEADER': 'SOME-VALUE'}, 'Header is incorrect')
 
     def test_evaluate(self):
         def total_seconds():
             return 0.1
 
-        def request(method, url, timeout=None):
+        def request(method, url, headers, timeout=None):
+            response = mock.Mock()
+            response.status_code = 200
+            response.elapsed = mock.Mock()
+            response.elapsed.total_seconds = total_seconds
+            response.text = '<body>'
+            return response
+
+        sys.modules['requests'].request = request
+        self.configuration.evaluate()
+
+        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+                          'Component status set incorrectly')
+
+    def test_evaluate_without_header(self):
+        def total_seconds():
+            return 0.1
+
+        def request(method, url, headers=None, timeout=None):
             response = mock.Mock()
             response.status_code = 200
             response.elapsed = mock.Mock()
@@ -67,7 +84,7 @@ class ConfigurationTest(unittest.TestCase):
         def total_seconds():
             return 0.1
 
-        def request(method, url, timeout=None):
+        def request(method, url, headers, timeout=None):
             response = mock.Mock()
             # We are expecting a 200 response, so this will fail the expectation.
             response.status_code = 400
@@ -83,7 +100,7 @@ class ConfigurationTest(unittest.TestCase):
                           'Component status set incorrectly')
 
     def test_evaluate_with_timeout(self):
-        def request(method, url, timeout=None):
+        def request(method, url, headers, timeout=None):
             self.assertEquals(method, 'GET', 'Incorrect HTTP method')
             self.assertEquals(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
             self.assertEquals(timeout, 0.010)
@@ -98,7 +115,7 @@ class ConfigurationTest(unittest.TestCase):
         self.mock_logger.warning.assert_called_with('Request timed out')
 
     def test_evaluate_with_connection_error(self):
-        def request(method, url, timeout=None):
+        def request(method, url, headers, timeout=None):
             self.assertEquals(method, 'GET', 'Incorrect HTTP method')
             self.assertEquals(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
             self.assertEquals(timeout, 0.010)
@@ -113,7 +130,7 @@ class ConfigurationTest(unittest.TestCase):
         self.mock_logger.warning.assert_called_with('The URL is unreachable: GET http://localhost:8080/swagger')
 
     def test_evaluate_with_http_error(self):
-        def request(method, url, timeout=None):
+        def request(method, url, headers, timeout=None):
             self.assertEquals(method, 'GET', 'Incorrect HTTP method')
             self.assertEquals(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
             self.assertEquals(timeout, 0.010)

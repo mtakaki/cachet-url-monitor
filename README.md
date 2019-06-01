@@ -1,6 +1,5 @@
-[![Stories in Ready](https://badge.waffle.io/mtakaki/cachet-url-monitor.png?label=ready&title=Ready)](https://waffle.io/mtakaki/cachet-url-monitor)
 # Status
-![Build Status](https://codeship.com/projects/5a246b70-f088-0133-9388-2640b49afa9e/status?branch=master)
+[![CircleCI](https://circleci.com/gh/mtakaki/cachet-url-monitor/tree/master.svg?style=svg)](https://circleci.com/gh/mtakaki/cachet-url-monitor/tree/master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/cachet-url-monitor/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/cachet-url-monitor?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ef4123130ef4140b8ea7b94d460ba64)](https://www.codacy.com/app/mitsuotakaki/cachet-url-monitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mtakaki/cachet-url-monitor&amp;utm_campaign=Badge_Grade)
 [![Docker pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
@@ -20,6 +19,8 @@ This project is available at PyPI: [https://pypi.python.org/pypi/cachet-url-moni
 endpoint:
   url: http://www.google.com
   method: GET
+  header:
+    SOME-HEADER: SOME-VALUE
   timeout: 1 # seconds
   expectation:
     - type: HTTP_STATUS
@@ -38,13 +39,14 @@ cachet:
     - CREATE_INCIDENT
     - UPDATE_STATUS
   public_incidents: true
+  latency_unit: ms
 frequency: 30
-latency_unit: ms
 ```
 
 - **endpoint**, the configuration about the URL that will be monitored.
     - **url**, the URL that is going to be monitored.
     - **method**, the HTTP method that will be used by the monitor.
+    - **header**, client header passed to the request. Remove if you do not want to pass a header.
     - **timeout**, how long we'll wait to consider the request failed. The unit of it is seconds.
     - **expectation**, the list of expectations set for the URL.
         - **HTTP_STATUS**, we will verify if the response status code falls into the expected range. Please keep in mind the range is inclusive on the first number and exclusive on the second number. If just one value is specified, it will default to only the given value, for example `200` will be converted to `200-201`. 
@@ -60,8 +62,8 @@ latency_unit: ms
         - **CREATE_INCIDENT**, we will create an incident when the expectation fails.
         - **UPDATE_STATUS**, updates the component status
     - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
+    - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
 - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
-- **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
 
 ## Setting up
 
@@ -83,16 +85,9 @@ $ python cachet_url_monitor/scheduler.py config.yml
 
 ## Docker
 
-You can run the agent in docker, so you won't need to worry about installing python, virtualenv, or any other dependency into your OS. The `Dockerfile` and `docker-compose.yml` files are already checked in and it's ready to be used.
+You can run the agent in docker, so you won't need to worry about installing python, virtualenv, or any other dependency into your OS. The `Dockerfile` is already checked in and it's ready to be used.
 
-To start the agent in a container using docker compose:
-
-```
-$ docker-compose build
-$ docker-compose up
-```
-
-Or pulling directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
+You have two choices, checking this repo out and building the docker image or it can be pulled directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
 
 ```
 $ docker pull mtakaki/cachet-url-monitor

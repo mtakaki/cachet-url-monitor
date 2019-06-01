@@ -7,7 +7,7 @@ from yaml import load
 
 import schedule
 
-from configuration import Configuration
+from cachet_url_monitor.configuration import Configuration
 
 
 class Agent(object):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         handler.addFilter(logging.Filter('cachet_url_monitor'))
 
     if len(sys.argv) <= 1:
-        logging.fatal('Missing configuration file argument')
+        logging.getLogger('cachet_url_monitor.scheduler').fatal('Missing configuration file argument')
         sys.exit(1)
 
     endpoints = adapter(sys.argv[1])

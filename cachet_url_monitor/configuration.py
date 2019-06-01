@@ -10,8 +10,8 @@ import requests
 from yaml import dump
 from yaml import load
 
-import latency_unit
-import status as st
+import cachet_url_monitor.latency_unit as latency_unit
+import cachet_url_monitor.status as st
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
@@ -60,7 +60,7 @@ def get_current_status(endpoint_url, component_id, headers):
 
     if get_status_request.ok:
         # The component exists.
-        return get_status_request.json()['data']['status']
+        return int(get_status_request.json()['data']['status'])
     else:
         raise ComponentNonexistentError(component_id)
 
@@ -96,6 +96,7 @@ class Configuration(object):
         self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
         self.endpoint_url = normalize_url(self.endpoint_url)
         self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
+        self.endpoint_header = self.data['endpoint'].get('header') or None
         self.allowed_fails = os.environ.get('ALLOWED_FAILS') or self.data['endpoint'].get('allowed_fails') or 0
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
@@ -171,7 +172,10 @@ class Configuration(object):
         according to the expectation results.
         """
         try:
-            self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
+            if self.endpoint_header is not None:
+              self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header)
+            else:
+              self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
             self.current_timestamp = int(time.time())
         except requests.ConnectionError:
             self.message = 'The URL is unreachable: %s %s' % (self.endpoint_method, self.endpoint_url)
@@ -236,6 +240,11 @@ class Configuration(object):
         if not self.trigger_update:
             return
 
+        self.api_component_status = get_current_status(self.api_url, self.component_id, self.headers)
+
+        if self.status == self.api_component_status:
+            return
+
         params = {'id': self.component_id, 'status': self.status}
         component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
                                          headers=self.headers)
@@ -263,7 +272,7 @@ class Configuration(object):
 
             if metrics_request.ok:
                 # Successful metrics upload
-                self.logger.info('Metric uploaded: %.6f seconds' % (value,))
+                self.logger.info('Metric uploaded: %.6f %s' % (value, self.latency_unit))
             else:
                 self.logger.warning('Metric upload failed with status [%d]' %
                                     (metrics_request.status_code,))
