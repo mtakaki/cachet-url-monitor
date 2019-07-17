@@ -8,17 +8,13 @@ import time
 
 import requests
 from yaml import dump
-from yaml import load
 
 import cachet_url_monitor.latency_unit as latency_unit
 import cachet_url_monitor.status as st
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
-configuration_mandatory_fields = {
-    'endpoint': ['url', 'method', 'timeout', 'expectation'],
-    'cachet': ['api_url', 'token', 'component_id'],
-    'frequency': []}
+configuration_mandatory_fields = ['url', 'method', 'timeout', 'expectation', 'component_id', 'frequency']
 
 
 class ConfigurationValidationError(Exception):
@@ -77,10 +73,11 @@ class Configuration(object):
     of assessing the API and pushing the results to cachet.
     """
 
-    def __init__(self, config_file):
+    def __init__(self, config_file, endpoint_index):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
-        self.config_file = config_file
-        self.data = load(open(self.config_file, 'r'))
+        self.endpoint_index = endpoint_index
+        self.data = config_file
+        self.endpoint = self.data['endpoints'][endpoint_index]
         self.current_fails = 0
         self.trigger_update = True
 
@@ -93,33 +90,32 @@ class Configuration(object):
         # We store the main information from the configuration file, so we don't keep reading from the data dictionary.
         self.headers = {'X-Cachet-Token': os.environ.get('CACHET_TOKEN') or self.data['cachet']['token']}
 
-        self.endpoint_method = os.environ.get('ENDPOINT_METHOD') or self.data['endpoint']['method']
-        self.endpoint_url = os.environ.get('ENDPOINT_URL') or self.data['endpoint']['url']
+        self.endpoint_method = self.endpoint['method']
+        self.endpoint_url = self.endpoint['url']
         self.endpoint_url = normalize_url(self.endpoint_url)
-        self.endpoint_timeout = os.environ.get('ENDPOINT_TIMEOUT') or self.data['endpoint'].get('timeout') or 1
-        self.endpoint_header = self.data['endpoint'].get('header') or None
-        self.allowed_fails = os.environ.get('ALLOWED_FAILS') or self.data['endpoint'].get('allowed_fails') or 0
+        self.endpoint_timeout = self.endpoint.get('timeout') or 1
+        self.endpoint_header = self.endpoint.get('header') or None
+        self.allowed_fails = self.endpoint.get('allowed_fails') or 0
 
         self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
-        self.component_id = os.environ.get('CACHET_COMPONENT_ID') or self.data['cachet']['component_id']
-        self.metric_id = os.environ.get('CACHET_METRIC_ID') or self.data['cachet'].get('metric_id')
+        self.component_id = self.endpoint['component_id']
+        self.metric_id = self.endpoint.get('metric_id')
 
         if self.metric_id is not None:
             self.default_metric_value = self.get_default_metric_value(self.metric_id)
 
         # The latency_unit configuration is not mandatory and we fallback to seconds, by default.
-        self.latency_unit = os.environ.get('LATENCY_UNIT') or self.data['cachet'].get('latency_unit') or 's'
+        self.latency_unit = self.data['cachet'].get('latency_unit') or 's'
 
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = get_current_status(self.api_url, self.component_id, self.headers)
         self.previous_status = self.status
 
         # Get remaining settings
-        self.public_incidents = int(
-            os.environ.get('CACHET_PUBLIC_INCIDENTS') or self.data['cachet']['public_incidents'])
+        self.public_incidents = int(self.endpoint['public_incidents'])
 
         self.logger.info('Monitoring URL: %s %s' % (self.endpoint_method, self.endpoint_url))
-        self.expectations = [Expectaction.create(expectation) for expectation in self.data['endpoint']['expectation']]
+        self.expectations = [Expectaction.create(expectation) for expectation in self.endpoint['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
@@ -136,10 +132,10 @@ class Configuration(object):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
         :return: The list of actions, which can be an empty list.
         """
-        if self.data['cachet'].get('action') is None:
+        if self.endpoint.get('action') is None:
             return []
         else:
-            return self.data['cachet']['action']
+            return self.endpoint['action']
 
     def validate(self):
         """Validates the configuration by verifying the mandatory fields are
@@ -147,24 +143,19 @@ class Configuration(object):
         ConfigurationValidationError is raised. Otherwise nothing will happen.
         """
         configuration_errors = []
-        for key, sub_entries in configuration_mandatory_fields.items():
-            if key not in self.data:
+        for key in configuration_mandatory_fields:
+            if key not in self.endpoint:
                 configuration_errors.append(key)
 
-            for sub_key in sub_entries:
-                if sub_key not in self.data[key]:
-                    configuration_errors.append('%s.%s' % (key, sub_key))
-
-        if ('endpoint' in self.data and 'expectation' in
-            self.data['endpoint']):
-            if (not isinstance(self.data['endpoint']['expectation'], list) or
-                    (isinstance(self.data['endpoint']['expectation'], list) and
-                             len(self.data['endpoint']['expectation']) == 0)):
+        if 'expecatation' in self.endpoint:
+            if (not isinstance(self.endpoint['expectation'], list) or
+                    (isinstance(self.endpoint['expectation'], list) and
+                     len(self.endpoint['expectation']) == 0)):
                 configuration_errors.append('endpoint.expectation')
 
         if len(configuration_errors) > 0:
             raise ConfigurationValidationError(
-                'Config file [%s] failed validation. Missing keys: %s' % (self.config_file,
+                'Endpoint [%s] failed validation. Missing keys: %s' % (self.endpoint,
                                                                           ', '.join(configuration_errors)))
 
     def evaluate(self):
@@ -213,6 +204,8 @@ class Configuration(object):
         temporary_data = copy.deepcopy(self.data)
         # Removing the token so we don't leak it in the logs.
         del temporary_data['cachet']['token']
+        temporary_data['endpoints'] = temporary_data['endpoints'][self.endpoint_index]
+
         return dump(temporary_data, default_flow_style=False)
 
     def if_trigger_update(self):
