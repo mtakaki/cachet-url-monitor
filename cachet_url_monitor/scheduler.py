@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import logging
 import sys
+import threading
 import time
 
 import schedule
+from yaml import load
 
 from cachet_url_monitor.configuration import Configuration
+cachet_mandatory_fields = ['api_url', 'token']
 
 
 class Agent(object):
@@ -32,8 +35,7 @@ class Agent(object):
 
     def start(self):
         """Sets up the schedule based on the configuration file."""
-        schedule.every(self.configuration.data['frequency']).seconds.do(self.execute)
-
+        schedule.every(self.configuration.endpoint['frequency']).seconds.do(self.execute)
 
 class Decorator(object):
     def execute(self, configuration):
@@ -51,9 +53,9 @@ class CreateIncidentDecorator(Decorator):
 
 
 class Scheduler(object):
-    def __init__(self, config_file):
+    def __init__(self, config_file, endpoint_index):
         self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
-        self.configuration = Configuration(config_file)
+        self.configuration = Configuration(config_file, endpoint_index)
         self.agent = self.get_agent()
 
         self.stop = False
@@ -74,7 +76,33 @@ class Scheduler(object):
         self.logger.info('Starting monitor agent...')
         while not self.stop:
             schedule.run_pending()
-            time.sleep(self.configuration.data['frequency'])
+            time.sleep(self.configuration.endpoint['frequency'])
+
+
+class NewThread(threading.Thread):
+    def __init__(self, scheduler):
+        threading.Thread.__init__(self)
+        self.scheduler = scheduler
+
+    def run(self):
+        self.scheduler.start()
+
+
+def validate_config():
+    if 'endpoints' not in config_file.keys():
+        fatal_error('Endpoints is a mandatory field')
+
+    if config_file['endpoints'] is None:
+        fatal_error('Endpoints array can not be empty')
+
+    for key in cachet_mandatory_fields:
+        if key not in config_file['cachet']:
+            fatal_error('Missing cachet mandatory fields')
+
+
+def fatal_error(message):
+    logging.getLogger('cachet_url_monitor.scheduler').fatal("%s", message)
+    sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -87,5 +115,13 @@ if __name__ == "__main__":
         logging.getLogger('cachet_url_monitor.scheduler').fatal('Missing configuration file argument')
         sys.exit(1)
 
-    scheduler = Scheduler(sys.argv[1])
-    scheduler.start()
+    try:
+        config_file = load(open(sys.argv[1], 'r'))
+    except FileNotFoundError:
+        logging.getLogger('cachet_url_monitor.scheduler').fatal('File not found')
+        sys.exit(1)
+
+    validate_config()
+
+    for i in range(len(config_file['endpoints'])):
+        NewThread(Scheduler(config_file, i)).start()
