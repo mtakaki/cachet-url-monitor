@@ -9,6 +9,7 @@ import time
 import requests
 from yaml import dump
 from yaml import load
+from yaml import FullLoader
 
 import cachet_url_monitor.latency_unit as latency_unit
 import cachet_url_monitor.status as st
@@ -80,7 +81,7 @@ class Configuration(object):
     def __init__(self, config_file):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
-        self.data = load(open(self.config_file, 'r'))
+        self.data = load(open(self.config_file, 'r'), Loader=FullLoader)
         self.current_fails = 0
         self.trigger_update = True
 

@@ -38,9 +38,9 @@ class ConfigurationTest(unittest.TestCase):
 
     def test_init(self):
         self.assertEqual(len(self.configuration.data), 3, 'Number of root elements in config.yml is incorrect')
-        self.assertEquals(len(self.configuration.expectations), 3, 'Number of expectations read from file is incorrect')
+        self.assertEqual(len(self.configuration.expectations), 3, 'Number of expectations read from file is incorrect')
         self.assertDictEqual(self.configuration.headers, {'X-Cachet-Token': 'token2'}, 'Header was not set correctly')
-        self.assertEquals(self.configuration.api_url, 'https://demo.cachethq.io/api/v1',
+        self.assertEqual(self.configuration.api_url, 'https://demo.cachethq.io/api/v1',
                           'Cachet API URL was set incorrectly')
         self.assertDictEqual(self.configuration.endpoint_header, {'SOME-HEADER': 'SOME-VALUE'}, 'Header is incorrect')
 
@@ -59,7 +59,7 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
                           'Component status set incorrectly')
 
     def test_evaluate_without_header(self):
@@ -77,7 +77,7 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
                           'Component status set incorrectly')
 
     def test_evaluate_with_failure(self):
@@ -96,57 +96,57 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
                           'Component status set incorrectly')
 
     def test_evaluate_with_timeout(self):
         def request(method, url, headers, timeout=None):
-            self.assertEquals(method, 'GET', 'Incorrect HTTP method')
-            self.assertEquals(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
-            self.assertEquals(timeout, 0.010)
+            self.assertEqual(method, 'GET', 'Incorrect HTTP method')
+            self.assertEqual(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
+            self.assertEqual(timeout, 0.010)
 
             raise Timeout()
 
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PERFORMANCE_ISSUES,
                           'Component status set incorrectly')
         self.mock_logger.warning.assert_called_with('Request timed out')
 
     def test_evaluate_with_connection_error(self):
         def request(method, url, headers, timeout=None):
-            self.assertEquals(method, 'GET', 'Incorrect HTTP method')
-            self.assertEquals(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
-            self.assertEquals(timeout, 0.010)
+            self.assertEqual(method, 'GET', 'Incorrect HTTP method')
+            self.assertEqual(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
+            self.assertEqual(timeout, 0.010)
 
             raise ConnectionError()
 
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
                           'Component status set incorrectly')
         self.mock_logger.warning.assert_called_with('The URL is unreachable: GET http://localhost:8080/swagger')
 
     def test_evaluate_with_http_error(self):
         def request(method, url, headers, timeout=None):
-            self.assertEquals(method, 'GET', 'Incorrect HTTP method')
-            self.assertEquals(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
-            self.assertEquals(timeout, 0.010)
+            self.assertEqual(method, 'GET', 'Incorrect HTTP method')
+            self.assertEqual(url, 'http://localhost:8080/swagger', 'Monitored URL is incorrect')
+            self.assertEqual(timeout, 0.010)
 
             raise HTTPError()
 
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
                           'Component status set incorrectly')
         self.mock_logger.exception.assert_called_with('Unexpected HTTP response')
 
     def test_push_status(self):
         def put(url, params=None, headers=None):
-            self.assertEquals(url, 'https://demo.cachethq.io/api/v1/components/1', 'Incorrect cachet API URL')
+            self.assertEqual(url, 'https://demo.cachethq.io/api/v1/components/1', 'Incorrect cachet API URL')
             self.assertDictEqual(params, {'id': 1, 'status': 1}, 'Incorrect component update parameters')
             self.assertDictEqual(headers, {'X-Cachet-Token': 'token2'}, 'Incorrect component update parameters')
 
@@ -155,13 +155,13 @@ class ConfigurationTest(unittest.TestCase):
             return response
 
         sys.modules['requests'].put = put
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
                           'Incorrect component update parameters')
         self.configuration.push_status()
 
     def test_push_status_with_failure(self):
         def put(url, params=None, headers=None):
-            self.assertEquals(url, 'https://demo.cachethq.io/api/v1/components/1', 'Incorrect cachet API URL')
+            self.assertEqual(url, 'https://demo.cachethq.io/api/v1/components/1', 'Incorrect cachet API URL')
             self.assertDictEqual(params, {'id': 1, 'status': 1}, 'Incorrect component update parameters')
             self.assertDictEqual(headers, {'X-Cachet-Token': 'token2'}, 'Incorrect component update parameters')
 
@@ -170,6 +170,6 @@ class ConfigurationTest(unittest.TestCase):
             return response
 
         sys.modules['requests'].put = put
-        self.assertEquals(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
                           'Incorrect component update parameters')
         self.configuration.push_status()
