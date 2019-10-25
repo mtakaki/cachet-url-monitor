@@ -97,12 +97,13 @@ $ virtualenv cachet-url-monitor
 $ cd cachet-url-monitor
 $ source bin/activate
 $ pip install -r requirements.txt
+$ python3 setup.py install
 ```
 
 To start the agent:
 
 ```
-$ python cachet_url_monitor/scheduler.py config.yml
+$ python3 cachet_url_monitor/scheduler.py config.yml
 ```
 
 ## Docker
