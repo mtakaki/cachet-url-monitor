@@ -7,6 +7,7 @@ endpoint:
   expectation:
     - type: HTTP_STATUS
       status_range: 200-300
+      incident: MAJOR
     - type: LATENCY
       threshold: 1
     - type: REGEX

@@ -25,6 +25,7 @@ endpoint:
   expectation:
     - type: HTTP_STATUS
       status_range: 200-300
+      incident: MAJOR
     - type: LATENCY
       threshold: 1
     - type: REGEX
@@ -64,6 +65,19 @@ frequency: 30
     - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
     - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
 - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
+
+Each `expectation` has their own default incident status. It can be overridden by setting the `incident` property to any of the following values:
+- `PARTIAL`
+- `MAJOR`
+- `PERFORMANCE`
+
+By choosing any of the aforementioned statuses, it will let you control the kind of incident it should be considered. These are the default incident status for each `expectation` type:
+
+| Expectation | Incident status |
+| ----------- | --------------- |
+| HTTP_STATUS | PARTIAL |
+| LATENCY | PERFORMANCE |
+| REGEX | PARTIAL |
 
 ## Setting up
 
