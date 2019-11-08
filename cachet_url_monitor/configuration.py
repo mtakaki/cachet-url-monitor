@@ -81,7 +81,7 @@ class Configuration(object):
     def __init__(self, config_file):
         self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.config_file = config_file
-        self.data = load(open(self.config_file, 'r'), Loader=FullLoader)
+        self.data = load(open(self.config_file, 'rt'), Loader=FullLoader)
         self.current_fails = 0
         self.trigger_update = True
 
@@ -331,6 +331,9 @@ class Expectation(object):
             'LATENCY': Latency,
             'REGEX': Regex
         }
+        if configuration['type'] not in expectations:
+            raise ConfigurationValidationError(f"Invalid type: {configuration['type']}")
+
         return expectations.get(configuration['type'])(configuration)
 
     def __init__(self, configuration):
