@@ -329,6 +329,9 @@ class Expectation(object):
             'LATENCY': Latency,
             'REGEX': Regex
         }
+        if configuration['type'] not in expectations:
+            raise ConfigurationValidationError(f"Invalid type: {configuration['type']}")
+
         return expectations.get(configuration['type'])(configuration)
 
     def __init__(self, configuration):
