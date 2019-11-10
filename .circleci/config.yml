@@ -42,7 +42,7 @@ jobs:
           name: run tests
           command: |
             . bin/activate
-            py.test tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor --doctest-modules --pep8 coveralls -v --cov coveralls --cov-report term-missing
+            py.test tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor --doctest-modules -v --cov-report term-missing
             coveralls
             coverage xml
             python-codacy-coverage -r coverage.xml
