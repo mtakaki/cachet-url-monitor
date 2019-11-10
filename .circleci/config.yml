@@ -43,7 +43,7 @@ jobs:
           command: |
             . bin/activate
             py.test tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor --doctest-modules -v --cov-report term-missing
-            coveralls
+            coveralls --data_file test-reports/junit.xml
             coverage xml
             python-codacy-coverage -r coverage.xml
 
