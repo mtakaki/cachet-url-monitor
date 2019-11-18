@@ -1,9 +1,7 @@
 language: python
 python:
-  - "3.7"
+  - "3.7.3"
 install:
-  - python3 -m venv .
-  - source bin/activate
   - pip3 install tox
 script:
   - tox
