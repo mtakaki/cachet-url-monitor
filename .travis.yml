@@ -4,6 +4,6 @@ python:
 install:
   - python3 -m venv .
   - source bin/activate
-  - pip install tox
+  - pip3 install tox
 script:
   - tox
