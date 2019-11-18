@@ -27,7 +27,7 @@ jobs:
           command: |
             python3 -m venv .
             source bin/activate
-            pip install tox
+            pip install tox python-codacy-coverage
 
       - save_cache:
           paths:
