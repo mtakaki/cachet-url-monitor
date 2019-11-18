@@ -25,13 +25,9 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            sudo pip3 install virtualenv
-            virtualenv .
+            sudo pip3 install venv
+            python3 -m venv .
             source bin/activate
-            pip3 install -r dev_requirements.txt
-            pip3 install -r requirements.txt
-            python3 setup.py install
-            pip3 install coveralls
 
       - save_cache:
           paths:
@@ -42,8 +38,7 @@ jobs:
           name: run tests
           command: |
             . bin/activate
-            py.test tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor --doctest-modules -v --cov-report term-missing
-            coveralls --data_file test-reports/junit.xml
+            tox
             coverage xml
             python-codacy-coverage -r coverage.xml
 
