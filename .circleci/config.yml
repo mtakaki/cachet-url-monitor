@@ -25,7 +25,6 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            sudo pip3 install venv
             python3 -m venv .
             source bin/activate
 
