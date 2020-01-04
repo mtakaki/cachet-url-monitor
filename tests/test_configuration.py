@@ -96,8 +96,8 @@ class ConfigurationTest(unittest.TestCase):
         sys.modules['requests'].request = request
         self.configuration.evaluate()
 
-        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_PARTIAL_OUTAGE,
-                          'Component status set incorrectly')
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_MAJOR_OUTAGE,
+                          'Component status set incorrectly or custom incident status is incorrectly parsed')
 
     def test_evaluate_with_timeout(self):
         def request(method, url, headers, timeout=None):

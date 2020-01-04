@@ -47,6 +47,7 @@ endpoints:
     expectation:
       - type: HTTP_STATUS
         status_range: 200-205
+        incident: MAJOR
       - type: LATENCY
         threshold: 1
       - type: REGEX
@@ -87,6 +88,19 @@ cachet:
     - **api_url**, the cachet API endpoint. *mandatory*
     - **token**, the API token. *mandatory*
 
+Each `expectation` has their own default incident status. It can be overridden by setting the `incident` property to any of the following values:
+- `PARTIAL`
+- `MAJOR`
+- `PERFORMANCE`
+
+By choosing any of the aforementioned statuses, it will let you control the kind of incident it should be considered. These are the default incident status for each `expectation` type:
+
+| Expectation | Incident status |
+| ----------- | --------------- |
+| HTTP_STATUS | PARTIAL |
+| LATENCY | PERFORMANCE |
+| REGEX | PARTIAL |
+
 ## Setting up
 
 The application should be installed using **virtualenv**, through the following command:
@@ -122,3 +136,14 @@ If you're going to use a file with a name other than `config.yml`, you will need
 ```
 $ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor
 ```
+
+## Troubleshooting
+
+### SSLERROR
+If it's throwing the following exception:
+```
+raise SSLError(e, request=request)
+requests.exceptions.SSLError: HTTPSConnectionPool(host='redacted', port=443): Max retries exceeded with url: /api/v1/components/19 (Caused by SSLError(SSLError(1, u'[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:579)'),))
+```
+
+It can be resolved by seting the CA bundle environment variable `REQUESTS_CA_BUNDLE` pointing at your certificate file. It can either be set in your python environment, before running this tool, or in your docker container.

@@ -34,7 +34,7 @@ class ComponentNonexistentError(Exception):
         self.component_id = component_id
 
     def __str__(self):
-        return repr('Component with id [%d] does not exist.' % (self.component_id,))
+        return repr(f'Component with id [{self.component_id}] does not exist.')
 
 
 class MetricNonexistentError(Exception):
@@ -44,7 +44,7 @@ class MetricNonexistentError(Exception):
         self.metric_id = metric_id
 
     def __str__(self):
-        return repr('Metric with id [%d] does not exist.' % (self.metric_id,))
+        return repr(f'Metric with id [{self.metric_id}] does not exist.')
 
 
 def get_current_status(endpoint_url, component_id, headers):
@@ -52,7 +52,7 @@ def get_current_status(endpoint_url, component_id, headers):
     not exist or doesn't respond with the expected data.
     :return component status.
     """
-    get_status_request = requests.get('%s/components/%s' % (endpoint_url, component_id), headers=headers)
+    get_status_request = requests.get(f'{endpoint_url}/components/{component_id}', headers=headers)
 
     if get_status_request.ok:
         # The component exists.
@@ -64,7 +64,7 @@ def get_current_status(endpoint_url, component_id, headers):
 def normalize_url(url):
     """If passed url doesn't include schema return it with default one - http."""
     if not url.lower().startswith('http'):
-        return 'http://%s' % url
+        return f'http://{url}'
     return url
 
 
@@ -199,7 +199,7 @@ class Configuration(object):
                 self.logger.info(self.message)
 
     def print_out(self):
-        self.logger.info('Current configuration:\n%s' % (self.__repr__()))
+        self.logger.info(f'Current configuration:\n{self.__repr__()}')
 
     def __repr__(self):
         temporary_data = copy.deepcopy(self.data)
@@ -217,7 +217,7 @@ class Configuration(object):
 
         if self.status != 1:
             self.current_fails = self.current_fails + 1
-            self.logger.info('Failure #%s with threshold set to %s' % (self.current_fails, self.allowed_fails))
+            self.logger.warning(f'Failure #{self.current_fails} with threshold set to {self.allowed_fails}')
             if self.current_fails <= self.allowed_fails:
                 self.trigger_update = False
                 return
@@ -269,8 +269,7 @@ class Configuration(object):
                 # Successful metrics upload
                 self.logger.info('Metric uploaded: %.6f %s' % (value, self.latency_unit))
             else:
-                self.logger.warning('Metric upload failed with status [%d]' %
-                                    (metrics_request.status_code,))
+                self.logger.warning(f'Metric upload failed with status [{metrics_request.status_code}]')
 
     def push_incident(self):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
@@ -284,36 +283,33 @@ class Configuration(object):
                       'component_status': self.status,
                       'notify': True}
 
-            incident_request = requests.put('%s/incidents/%d' % (self.api_url, self.incident_id), params=params,
+            incident_request = requests.put(f'{self.api_url}/incidents/{self.incident_id}', params=params,
                                             headers=self.headers)
             if incident_request.ok:
                 # Successful metrics upload
                 self.logger.info(
-                    'Incident updated, API healthy again: component status [%d], message: "%s"' % (
-                        self.status, self.message))
+                    f'Incident updated, API healthy again: component status [{self.status}], message: "{self.message}"')
                 del self.incident_id
             else:
-                self.logger.warning('Incident update failed with status [%d], message: "%s"' % (
-                    incident_request.status_code, self.message))
+                self.logger.warning(
+                    f'Incident update failed with status [{incident_request.status_code}], message: "{self.message}"')
         elif not hasattr(self, 'incident_id') and self.status != st.COMPONENT_STATUS_OPERATIONAL:
             # This is the first time the incident is being created.
             params = {'name': 'URL unavailable', 'message': self.message, 'status': 1, 'visible': self.public_incidents,
                       'component_id': self.component_id, 'component_status': self.status, 'notify': True}
-            incident_request = requests.post('%s/incidents' % (self.api_url,), params=params, headers=self.headers)
+            incident_request = requests.post(f'{self.api_url}/incidents', params=params, headers=self.headers)
             if incident_request.ok:
                 # Successful incident upload.
                 self.incident_id = incident_request.json()['data']['id']
                 self.logger.info(
-                    'Incident uploaded, API unhealthy: component status [%d], message: "%s"' % (
-                        self.status, self.message))
+                    f'Incident uploaded, API unhealthy: component status [{self.status}], message: "{self.message}"')
             else:
                 self.logger.warning(
-                    'Incident upload failed with status [%d], message: "%s"' % (
-                        incident_request.status_code, self.message))
+                    f'Incident upload failed with status [{incident_request.status_code}], message: "{self.message}"')
 
 
-class Expectaction(object):
-    """Base class for URL result expectations. Any new excpectation should extend
+class Expectation(object):
+    """Base class for URL result expectations. Any new expectation should extend
     this class and the name added to create() method.
     """
 
@@ -322,12 +318,16 @@ class Expectaction(object):
         """Creates a list of expectations based on the configuration types
         list.
         """
+        # If a need expectation is created, this is where we need to add it.
         expectations = {
             'HTTP_STATUS': HttpStatus,
             'LATENCY': Latency,
             'REGEX': Regex
         }
         return expectations.get(configuration['type'])(configuration)
+
+    def __init__(self, configuration):
+        self.incident_status = self.parse_incident_status(configuration)
 
     @abc.abstractmethod
     def get_status(self, response):
@@ -339,43 +339,58 @@ class Expectaction(object):
     def get_message(self, response):
         """Gets the error message."""
 
+    @abc.abstractmethod
+    def get_default_incident(self):
+        """Returns the default status when this incident happens."""
 
-class HttpStatus(Expectaction):
+    def parse_incident_status(self, configuration):
+        return st.INCIDENT_MAP.get(configuration.get('incident', None), self.get_default_incident())
+
+
+class HttpStatus(Expectation):
     def __init__(self, configuration):
         self.status_range = HttpStatus.parse_range(configuration['status_range'])
+        super(HttpStatus, self).__init__(configuration)
 
     @staticmethod
     def parse_range(range_string):
         statuses = range_string.split("-")
         if len(statuses) == 1:
             # When there was no range given, we should treat the first number as a single status check.
-            return (int(statuses[0]), int(statuses[0]) + 1)
+            return int(statuses[0]), int(statuses[0]) + 1
         else:
             # We shouldn't look into more than one value, as this is a range value.
-            return (int(statuses[0]), int(statuses[1]))
+            return int(statuses[0]), int(statuses[1])
 
     def get_status(self, response):
-        if response.status_code >= self.status_range[0] and response.status_code < self.status_range[1]:
+        if self.status_range[0] <= response.status_code < self.status_range[1]:
             return st.COMPONENT_STATUS_OPERATIONAL
         else:
-            return st.COMPONENT_STATUS_PARTIAL_OUTAGE
+            return self.incident_status
+
+    def get_default_incident(self):
+        return st.COMPONENT_STATUS_PARTIAL_OUTAGE
 
     def get_message(self, response):
-        return 'Unexpected HTTP status (%s)' % (response.status_code,)
+        return f'Unexpected HTTP status ({response.status_code})'
 
     def __str__(self):
-        return repr('HTTP status range: %s' % (self.status_range,))
+        return repr(f'HTTP status range: {self.status_range}')
 
 
-class Latency(Expectaction):
+class Latency(Expectation):
     def __init__(self, configuration):
         self.threshold = configuration['threshold']
+        super(Latency, self).__init__(configuration)
 
     def get_status(self, response):
         if response.elapsed.total_seconds() <= self.threshold:
             return st.COMPONENT_STATUS_OPERATIONAL
         else:
-            return st.COMPONENT_STATUS_PERFORMANCE_ISSUES
+            return self.incident_status
+
+    def get_default_incident(self):
+        return st.COMPONENT_STATUS_PERFORMANCE_ISSUES
 
     def get_message(self, response):
         return 'Latency above threshold: %.4f seconds' % (response.elapsed.total_seconds(),)
@@ -384,19 +399,23 @@ class Latency(Expectaction):
         return repr('Latency threshold: %.4f seconds' % (self.threshold,))
 
 
-class Regex(Expectaction):
+class Regex(Expectation):
     def __init__(self, configuration):
         self.regex_string = configuration['regex']
         self.regex = re.compile(configuration['regex'], re.UNICODE + re.DOTALL)
+        super(Regex, self).__init__(configuration)
 
     def get_status(self, response):
         if self.regex.match(response.text):
             return st.COMPONENT_STATUS_OPERATIONAL
         else:
-            return st.COMPONENT_STATUS_PARTIAL_OUTAGE
+            return self.incident_status
+
+    def get_default_incident(self):
+        return st.COMPONENT_STATUS_PARTIAL_OUTAGE
 
     def get_message(self, response):
         return 'Regex did not match anything in the body'
 
     def __str__(self):
-        return repr('Regex: %s' % (self.regex_string,))
+        return repr(f'Regex: {self.regex_string}')
