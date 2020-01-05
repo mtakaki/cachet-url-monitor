@@ -5,9 +5,10 @@ import threading
 import time
 
 import schedule
-from yaml import load
+from yaml import load, SafeLoader
 
 from cachet_url_monitor.configuration import Configuration
+
 cachet_mandatory_fields = ['api_url', 'token']
 
 
@@ -36,6 +37,7 @@ class Agent(object):
     def start(self):
         """Sets up the schedule based on the configuration file."""
         schedule.every(self.configuration.endpoint['frequency']).seconds.do(self.execute)
+
 
 class Decorator(object):
     def execute(self, configuration):
@@ -116,12 +118,12 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        config_file = load(open(sys.argv[1], 'r'))
+        config_file = load(open(sys.argv[1], 'r'), SafeLoader)
     except FileNotFoundError:
         logging.getLogger('cachet_url_monitor.scheduler').fatal('File not found')
         sys.exit(1)
 
     validate_config()
 
-    for i in range(len(config_file['endpoints'])):
-        NewThread(Scheduler(config_file, i)).start()
+    for endpoint_index in range(len(config_file['endpoints'])):
+        NewThread(Scheduler(config_file, endpoint_index)).start()

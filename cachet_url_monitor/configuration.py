@@ -115,7 +115,7 @@ class Configuration(object):
         self.public_incidents = int(self.endpoint['public_incidents'])
 
         self.logger.info('Monitoring URL: %s %s' % (self.endpoint_method, self.endpoint_url))
-        self.expectations = [Expectaction.create(expectation) for expectation in self.endpoint['expectation']]
+        self.expectations = [Expectation.create(expectation) for expectation in self.endpoint['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 

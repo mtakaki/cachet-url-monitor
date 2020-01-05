@@ -3,6 +3,7 @@ import sys
 import unittest
 
 import mock
+from yaml import load, SafeLoader
 
 sys.modules['schedule'] = mock.Mock()
 from cachet_url_monitor.scheduler import Agent, Scheduler
@@ -26,7 +27,7 @@ class AgentTest(unittest.TestCase):
 
     def test_start(self):
         every = sys.modules['schedule'].every
-        self.configuration.data = {'frequency': 5}
+        self.configuration.endpoint = {'frequency': 5}
 
         self.agent.start()
 
@@ -45,7 +46,7 @@ class SchedulerTest(unittest.TestCase):
 
         mock_requests.get = get
 
-        self.scheduler = Scheduler('config.yml')
+        self.scheduler = Scheduler(load(open('config.yml', 'r'), SafeLoader), 0)
 
     def test_init(self):
         assert self.scheduler.stop == False
