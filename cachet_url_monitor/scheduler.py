@@ -126,7 +126,7 @@ if __name__ == "__main__":
     try:
         config_file = load(open(sys.argv[1], 'r'), SafeLoader)
     except FileNotFoundError:
-        logging.getLogger('cachet_url_monitor.scheduler').fatal('File not found')
+        logging.getLogger('cachet_url_monitor.scheduler').fatal(f'File not found: {sys.argv[1]}')
         sys.exit(1)
 
     validate_config()
