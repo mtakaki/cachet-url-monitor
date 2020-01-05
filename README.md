@@ -66,7 +66,7 @@ cachet:
 ```
 
 - **endpoints**, the configuration about the URL/Urls that will be monitored.
-    - **name**, The name of the component. This is now mandatory so we can distinguish the logs for each URL being monitored.
+    - **name**, The name of the component. This is now mandatory (since 0.6.0) so we can distinguish the logs for each URL being monitored.
     - **url**, the URL that is going to be monitored. *mandatory*
     - **method**, the HTTP method that will be used by the monitor. *mandatory*
     - **header**, client header passed to the request. Remove if you do not want to pass a header.
