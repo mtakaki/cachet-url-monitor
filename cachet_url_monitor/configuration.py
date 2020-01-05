@@ -74,12 +74,17 @@ class Configuration(object):
     """
 
     def __init__(self, config_file, endpoint_index):
-        self.logger = logging.getLogger('cachet_url_monitor.configuration.Configuration')
         self.endpoint_index = endpoint_index
         self.data = config_file
         self.endpoint = self.data['endpoints'][endpoint_index]
         self.current_fails = 0
         self.trigger_update = True
+
+        if 'name' not in self.endpoint:
+            # We have to make this mandatory, otherwise the logs are confusing when there are multiple URLs.
+            raise ConfigurationValidationError('name')
+
+        self.logger = logging.getLogger(f'cachet_url_monitor.configuration.Configuration.{self.endpoint["name"]}')
 
         # Exposing the configuration to confirm it's parsed as expected.
         self.print_out()
@@ -354,6 +359,10 @@ class HttpStatus(Expectation):
 
     @staticmethod
     def parse_range(range_string):
+        if isinstance(range_string, int):
+            # This happens when there's no range and no dash character, it will be parsed as int already.
+            return range_string, range_string + 1
+
         statuses = range_string.split("-")
         if len(statuses) == 1:
             # When there was no range given, we should treat the first number as a single status check.
@@ -375,7 +384,7 @@ class HttpStatus(Expectation):
         return f'Unexpected HTTP status ({response.status_code})'
 
     def __str__(self):
-        return repr(f'HTTP status range: {self.status_range}')
+        return repr(f'HTTP status range: [{self.status_range[0]}, {self.status_range[1]}[')
 
 
 class Latency(Expectation):

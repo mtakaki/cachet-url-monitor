@@ -54,6 +54,11 @@ class CreateIncidentDecorator(Decorator):
         configuration.push_incident()
 
 
+class PushMetricsDecorator(Decorator):
+    def execute(self, configuration):
+        configuration.push_metrics()
+
+
 class Scheduler(object):
     def __init__(self, config_file, endpoint_index):
         self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
@@ -66,10 +71,11 @@ class Scheduler(object):
         action_names = {
             'CREATE_INCIDENT': CreateIncidentDecorator,
             'UPDATE_STATUS': UpdateStatusDecorator,
+            'PUSH_METRICS': PushMetricsDecorator,
         }
         actions = []
         for action in self.configuration.get_action():
-            self.logger.info('Registering action %s' % (action))
+            self.logger.info(f'Registering action {action}')
             actions.append(action_names[action]())
         return Agent(self.configuration, decorators=actions)
 

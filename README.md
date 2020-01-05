@@ -66,7 +66,7 @@ cachet:
 ```
 
 - **endpoints**, the configuration about the URL/Urls that will be monitored.
-    - **name**, The name of the component. Only used for readability
+    - **name**, The name of the component. This is now mandatory so we can distinguish the logs for each URL being monitored.
     - **url**, the URL that is going to be monitored. *mandatory*
     - **method**, the HTTP method that will be used by the monitor. *mandatory*
     - **header**, client header passed to the request. Remove if you do not want to pass a header.
@@ -80,7 +80,8 @@ cachet:
     - **metric_id**, this will be used to store the latency of the API. If this is not set, it will be ignored.
     - **action**, the action to be done when one of the expectations fails. This is optional and if left blank, nothing will be done to the component.
         - **CREATE_INCIDENT**, we will create an incident when the expectation fails.
-        - **UPDATE_STATUS**, updates the component status
+        - **UPDATE_STATUS**, updates the component status.
+        - **PUSH_METRICS**, uploads response latency metrics.
     - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
     - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
     - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
