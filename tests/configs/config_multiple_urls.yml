@@ -1,0 +1,28 @@
+endpoints:
+  - name: foo
+    url: http://localhost:8080/swagger
+    method: GET
+    expectation:
+      - type: HTTP_STATUS
+        status_range: 200-300
+    allowed_fails: 0
+    component_id: 1
+    latency_unit: ms
+    frequency: 30
+    timeout: 1
+    public_incidents: true
+  - name: bar
+    url: http://localhost:8080/bar
+    method: POST
+    expectation:
+      - type: HTTP_STATUS
+        status_range: 500
+    allowed_fails: 0
+    component_id: 2
+    latency_unit: ms
+    frequency: 30
+    timeout: 1
+    public_incidents: true
+cachet:
+  api_url: https://demo.cachethq.io/api/v1
+  token: my_token
