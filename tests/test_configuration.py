@@ -158,7 +158,7 @@ class ConfigurationTest(unittest.TestCase):
             return response
 
         sys.modules['requests'].put = put
-        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.ComponentStatus.OPERATIONAL,
                          'Incorrect component update parameters')
         self.configuration.push_status()
 
@@ -173,7 +173,7 @@ class ConfigurationTest(unittest.TestCase):
             return response
 
         sys.modules['requests'].put = put
-        self.assertEqual(self.configuration.status, cachet_url_monitor.status.COMPONENT_STATUS_OPERATIONAL,
+        self.assertEqual(self.configuration.status, cachet_url_monitor.status.ComponentStatus.OPERATIONAL,
                          'Incorrect component update parameters')
         self.configuration.push_status()
 

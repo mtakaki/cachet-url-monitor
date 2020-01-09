@@ -11,6 +11,8 @@ from yaml import dump
 
 import cachet_url_monitor.latency_unit as latency_unit
 import cachet_url_monitor.status as st
+from cachet_url_monitor.client import CachetClient, normalize_url
+from cachet_url_monitor.exceptions import ComponentNonexistentError, MetricNonexistentError
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
@@ -25,47 +27,6 @@ class ConfigurationValidationError(Exception):
 
     def __str__(self):
         return repr(self.value)
-
-
-class ComponentNonexistentError(Exception):
-    """Exception raised when the component does not exist."""
-
-    def __init__(self, component_id):
-        self.component_id = component_id
-
-    def __str__(self):
-        return repr(f'Component with id [{self.component_id}] does not exist.')
-
-
-class MetricNonexistentError(Exception):
-    """Exception raised when the component does not exist."""
-
-    def __init__(self, metric_id):
-        self.metric_id = metric_id
-
-    def __str__(self):
-        return repr(f'Metric with id [{self.metric_id}] does not exist.')
-
-
-def get_current_status(endpoint_url, component_id, headers):
-    """Retrieves the current status of the component that is being monitored. It will fail if the component does
-    not exist or doesn't respond with the expected data.
-    :return component status.
-    """
-    get_status_request = requests.get(f'{endpoint_url}/components/{component_id}', headers=headers)
-
-    if get_status_request.ok:
-        # The component exists.
-        return int(get_status_request.json()['data']['status'])
-    else:
-        raise ComponentNonexistentError(component_id)
-
-
-def normalize_url(url):
-    """If passed url doesn't include schema return it with default one - http."""
-    if not url.lower().startswith('http'):
-        return f'http://{url}'
-    return url
 
 
 class Configuration(object):
@@ -93,11 +54,11 @@ class Configuration(object):
         self.validate()
 
         # We store the main information from the configuration file, so we don't keep reading from the data dictionary.
-        self.headers = {'X-Cachet-Token': os.environ.get('CACHET_TOKEN') or self.data['cachet']['token']}
+        self.token = os.environ.get('CACHET_TOKEN') or self.data['cachet']['token']
+        self.headers = {'X-Cachet-Token': self.token}
 
         self.endpoint_method = self.endpoint['method']
-        self.endpoint_url = self.endpoint['url']
-        self.endpoint_url = normalize_url(self.endpoint_url)
+        self.endpoint_url = normalize_url(self.endpoint['url'])
         self.endpoint_timeout = self.endpoint.get('timeout') or 1
         self.endpoint_header = self.endpoint.get('header') or None
         self.allowed_fails = self.endpoint.get('allowed_fails') or 0
@@ -106,6 +67,8 @@ class Configuration(object):
         self.component_id = self.endpoint['component_id']
         self.metric_id = self.endpoint.get('metric_id')
 
+        self.client = CachetClient(self.api_url, self.token)
+
         if self.metric_id is not None:
             self.default_metric_value = self.get_default_metric_value(self.metric_id)
 
@@ -113,7 +76,7 @@ class Configuration(object):
         self.latency_unit = self.data['cachet'].get('latency_unit') or 's'
 
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
-        self.status = get_current_status(self.api_url, self.component_id, self.headers)
+        self.status = self.client.get_component_status(self.component_id)
         self.previous_status = self.status
 
         # Get remaining settings
@@ -234,20 +197,19 @@ class Configuration(object):
         status based on the previous call to evaluate().
         """
         if self.previous_status == self.status:
+            # We don't want to keep spamming if there's no change in status.
             return
         self.previous_status = self.status
 
         if not self.trigger_update:
             return
 
-        self.api_component_status = get_current_status(self.api_url, self.component_id, self.headers)
+        self.api_component_status = self.client.get_component_status(self.component_id)
 
         if self.status == self.api_component_status:
             return
 
-        params = {'id': self.component_id, 'status': self.status}
-        component_request = requests.put('%s/components/%d' % (self.api_url, self.component_id), params=params,
-                                         headers=self.headers)
+        component_request = self.client.push_status(self.component_id, self.status)
         if component_request.ok:
             # Successful update
             self.logger.info('Component update: status [%d]' % (self.status,))

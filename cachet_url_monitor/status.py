@@ -3,6 +3,15 @@
 This file defines all the different status different values.
 These are all constants and are coupled to cachet's API configuration.
 """
+from enum import Enum
+
+
+class ComponentStatus(Enum):
+    OPERATIONAL = 1
+    PERFORMANCE_ISSUES = 2
+    PARTIAL_OUTAGE = 3
+    MAJOR_OUTAGE = 4
+
 
 COMPONENT_STATUS_OPERATIONAL = 1
 COMPONENT_STATUS_PERFORMANCE_ISSUES = 2
@@ -22,3 +31,11 @@ INCIDENT_MAP = {
     INCIDENT_MAJOR: COMPONENT_STATUS_MAJOR_OUTAGE,
     INCIDENT_PERFORMANCE: COMPONENT_STATUS_PERFORMANCE_ISSUES,
 }
+
+
+class IncidentStatus(Enum):
+    SCHEDULED = 0
+    INVESTIGATING = 1
+    IDENTIFIED = 2
+    WATCHING = 3
+    FIXED = 4
