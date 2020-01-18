@@ -76,7 +76,7 @@ class ClientTest(unittest.TestCase):
                     'name': 'apache',
                     'url': 'http://abc.def',
                     'method': 'GET',
-                    'timeout': 0.1,
+                    'timeout': 1,
                     'expectation': [
                         {
                             'type': 'HTTP_STATUS',
@@ -97,7 +97,7 @@ class ClientTest(unittest.TestCase):
                     'name': 'nginx',
                     'url': 'http://mno.pqr',
                     'method': 'GET',
-                    'timeout': 0.1,
+                    'timeout': 1,
                     'expectation': [
                         {
                             'type': 'HTTP_STATUS',
