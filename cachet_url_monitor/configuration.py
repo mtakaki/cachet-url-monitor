@@ -5,20 +5,17 @@ import logging
 import os
 import re
 import time
-from typing import Any, Union
 
 import requests
 from yaml import dump
 
-import cachet_url_monitor.latency_unit as latency_unit
 import cachet_url_monitor.status as st
 from cachet_url_monitor.client import CachetClient, normalize_url
-from cachet_url_monitor.exceptions import ComponentNonexistentError, MetricNonexistentError
+from cachet_url_monitor.exceptions import MetricNonexistentError
+from cachet_url_monitor.status import ComponentStatus
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
-from cachet_url_monitor.status import ComponentStatus
-
 configuration_mandatory_fields = ['url', 'method', 'timeout', 'expectation', 'component_id', 'frequency']
 
 

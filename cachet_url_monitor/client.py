@@ -1,25 +1,31 @@
 #!/usr/bin/env python
+from typing import Dict
+
+import click
 import requests
 from yaml import dump
 from cachet_url_monitor import latency_unit, status, exceptions
 
 
-def normalize_url(url):
+def normalize_url(url: str) -> str:
     """If passed url doesn't include schema return it with default one - http."""
     if not url.lower().startswith('http'):
         return f'http://{url}'
     return url
 
 
-def save_config(config_map, filename):
+def save_config(config_map, filename: str):
     with open(filename, 'w') as file:
         dump(config_map, file)
 
 
 class CachetClient(object):
     """Utility class to interact with CahetHQ server."""
+    url: str
+    token: str
+    headers: Dict[str, str]
 
-    def __init__(self, url, token):
+    def __init__(self, url: str, token: str):
         self.url = normalize_url(url)
         self.token = token
         self.headers = {'X-Cachet-Token': token}
@@ -73,7 +79,7 @@ class CachetClient(object):
         if get_metric_request.ok:
             return get_metric_request.json()['data']['default_value']
         else:
-            raise MetricNonexistentError(metric_id)
+            raise exceptions.MetricNonexistentError(metric_id)
 
     def get_component_status(self, component_id):
         """Retrieves the current status of the given component. It will fail if the component does
@@ -88,10 +94,10 @@ class CachetClient(object):
         else:
             raise exceptions.ComponentNonexistentError(component_id)
 
-    def push_status(self, component_id, status):
+    def push_status(self, component_id, component_status):
         """Pushes the status of the component to the cachet server.
         """
-        params = {'id': component_id, 'status': status}
+        params = {'id': component_id, 'status': component_status}
         return requests.put(f"{self.url}/components/{component_id}", params=params, headers=self.headers)
 
     def push_metrics(self, metric_id, latency_time_unit, elapsed_time_in_seconds, timestamp):
@@ -119,3 +125,19 @@ class CachetClient(object):
                       'visible': is_public_incident, 'component_id': component_id, 'component_status': status_value,
                       'notify': True}
             return requests.post(f'{self.url}/incidents', params=params, headers=self.headers)
+
+@click.group()
+def run_client():
+    pass
+
+@click.command()
+@click.argument('url')
+@click.argument('token')
+@click.argument('output')
+def run_client(url, token, output):
+    client = CachetClient(url, token)
+    config = client.generate_config()
+    save_config(config, output)
+
+if __name__ == '__main__':
+    run_client()

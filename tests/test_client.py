@@ -5,6 +5,7 @@ from typing import Dict, List
 import requests_mock
 
 from cachet_url_monitor.client import CachetClient
+from cachet_url_monitor.exceptions import MetricNonexistentError
 from cachet_url_monitor.status import ComponentStatus
 
 TOKEN: str = 'token_123'
@@ -118,18 +119,17 @@ class ClientTest(unittest.TestCase):
 
     @requests_mock.mock()
     def test_get_default_metric_value(self, m):
-        def json():
-            return {
-                'data': {
-                    'default_value': 0.456
-                }
-            }
-
-        m.get(f'{CACHET_URL}/metrics/123', json=json(), headers={'X-Cachet-Token': TOKEN})
+        m.get(f'{CACHET_URL}/metrics/123', json={'data': {'default_value': 0.456}}, headers={'X-Cachet-Token': TOKEN})
         default_metric_value = self.client.get_default_metric_value(123)
 
         self.assertEqual(default_metric_value, 0.456,
                          'Getting default metric value is incorrect.')
+
+    @requests_mock.mock()
+    def test_get_default_metric_value_invalid_id(self, m):
+        m.get(f'{CACHET_URL}/metrics/123', headers={'X-Cachet-Token': TOKEN}, status_code=400)
+        with self.assertRaises(MetricNonexistentError):
+            self.client.get_default_metric_value(123)
 
     @requests_mock.mock()
     def test_get_component_status(self, m):
