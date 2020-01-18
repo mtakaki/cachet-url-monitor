@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 import sys
 import unittest
-import os
 
 import mock
-from yaml import load, SafeLoader
 
 sys.modules['schedule'] = mock.Mock()
 from cachet_url_monitor.scheduler import Agent, Scheduler
