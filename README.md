@@ -138,7 +138,7 @@ If you're going to use a file with a name other than `config.yml`, you will need
 $ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor
 ```
 
-## Generating configuration from existing CachetHQ instance (since 0.6.1)
+## Generating configuration from existing CachetHQ instance (since 0.6.2)
  
 In order to expedite the creation of your configuration file, you can use the client to automatically scrape the CachetHQ instance and spit out a YAML file. It can be used like this:
 ```bash
