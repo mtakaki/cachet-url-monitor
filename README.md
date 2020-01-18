@@ -106,7 +106,7 @@ By choosing any of the aforementioned statuses, it will let you control the kind
 
 The application should be installed using **virtualenv**, through the following command:
 
-```
+```bash
 $ git clone https://github.com/mtakaki/cachet-url-monitor.git
 $ virtualenv cachet-url-monitor
 $ cd cachet-url-monitor
@@ -117,7 +117,7 @@ $ python3 setup.py install
 
 To start the agent:
 
-```
+```bash
 $ python3 cachet_url_monitor/scheduler.py config.yml
 ```
 
@@ -127,22 +127,46 @@ You can run the agent in docker, so you won't need to worry about installing pyt
 
 You have two choices, checking this repo out and building the docker image or it can be pulled directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
 
-```
+```bash
 $ docker pull mtakaki/cachet-url-monitor
 $ docker run --rm -it -v "$PWD":/usr/src/app/config/ mtakaki/cachet-url-monitor
 ```
 
 If you're going to use a file with a name other than `config.yml`, you will need to map the local file, like this:
 
-```
+```bash
 $ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor
 ```
+
+## Generating configuration from existing CachetHQ instance (since 0.6.1)
+ 
+In order to expedite the creation of your configuration file, you can use the client to automatically scrape the CachetHQ instance and spit out a YAML file. It can be used like this:
+```bash
+$ python cachet_url_monitor/client.py http://localhost/api/v1 my-token test.yml
+``` 
+Or from docker (you will end up with a `test.yml` in your `$PWD/tmp` folder):
+```bash
+$ docker run --rm -it -v $PWD/tmp:/home/tmp/ mtakaki/cachet-url-monitor python3.7 ./cachet_url_monitor/client.py http://localhost/api/v1 my-token /home/tmp/test.yml
+```
+The arguments are:
+- **URL**, the CachetHQ API URL, so that means appending `/api/v1` to your hostname.
+- **token**, the token that has access to your CachetHQ instance.
+- **filename**, the file where it should write the configuration.
+
+### Caveats
+Because we can't predict what expectations will be needed, it will default to these behavior:
+- Verify a [200-300[ HTTP status range.
+- If status fail, make the incident major and public.
+- Frequency of 30 seconds.
+- `GET` request.
+- Timeout of 1s.
+- We'll read the `link` field from the components and use it as the URL. 
 
 ## Troubleshooting
 
 ### SSLERROR
 If it's throwing the following exception:
-```
+```python
 raise SSLError(e, request=request)
 requests.exceptions.SSLError: HTTPSConnectionPool(host='redacted', port=443): Max retries exceeded with url: /api/v1/components/19 (Caused by SSLError(SSLError(1, u'[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:579)'),))
 ```

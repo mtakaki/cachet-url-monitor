@@ -40,44 +40,39 @@ class Agent(object):
 
 
 class Decorator(object):
+    """Defines the actions a user can configure to be executed when there's an incident."""
+
     def execute(self, configuration):
         pass
 
 
 class UpdateStatusDecorator(Decorator):
+    """Updates the component status when an incident happens."""
+
     def execute(self, configuration):
         configuration.push_status()
 
 
 class CreateIncidentDecorator(Decorator):
+    """Creates an incident entry on cachet when an incident happens."""
+
     def execute(self, configuration):
         configuration.push_incident()
 
 
 class PushMetricsDecorator(Decorator):
+    """Updates the URL latency metric."""
+
     def execute(self, configuration):
         configuration.push_metrics()
 
 
 class Scheduler(object):
-    def __init__(self, config_file, endpoint_index):
+    def __init__(self, configuration, agent):
         self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
-        self.configuration = Configuration(config_file, endpoint_index)
-        self.agent = self.get_agent()
-
+        self.configuration = configuration
+        self.agent = agent
         self.stop = False
-
-    def get_agent(self):
-        action_names = {
-            'CREATE_INCIDENT': CreateIncidentDecorator,
-            'UPDATE_STATUS': UpdateStatusDecorator,
-            'PUSH_METRICS': PushMetricsDecorator,
-        }
-        actions = []
-        for action in self.configuration.get_action():
-            self.logger.info(f'Registering action {action}')
-            actions.append(action_names[action]())
-        return Agent(self.configuration, decorators=actions)
 
     def start(self):
         self.agent.start()
@@ -94,6 +89,19 @@ class NewThread(threading.Thread):
 
     def run(self):
         self.scheduler.start()
+
+
+def build_agent(configuration, logger):
+    action_names = {
+        'CREATE_INCIDENT': CreateIncidentDecorator,
+        'UPDATE_STATUS': UpdateStatusDecorator,
+        'PUSH_METRICS': PushMetricsDecorator,
+    }
+    actions = []
+    for action in configuration.get_action():
+        logger.info(f'Registering action {action}')
+        actions.append(action_names[action]())
+    return Agent(configuration, decorators=actions)
 
 
 def validate_config():
@@ -132,4 +140,6 @@ if __name__ == "__main__":
     validate_config()
 
     for endpoint_index in range(len(config_file['endpoints'])):
-        NewThread(Scheduler(config_file, endpoint_index)).start()
+        configuration = Configuration(config_file, endpoint_index)
+        NewThread(Scheduler(configuration,
+                            build_agent(configuration, logging.getLogger('cachet_url_monitor.scheduler')))).start()
