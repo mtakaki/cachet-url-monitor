@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import unittest
+import os
 
 import mock
 from yaml import load, SafeLoader
@@ -46,13 +47,43 @@ class SchedulerTest(unittest.TestCase):
 
         mock_requests.get = get
 
-        self.scheduler = Scheduler(load(open('config.yml', 'r'), SafeLoader), 0)
+        self.agent = mock.MagicMock()
+
+        self.scheduler = Scheduler(
+            {
+                'endpoints': [
+                    {
+                        'name': 'foo',
+                        'url': 'http://localhost:8080/swagger',
+                        'method': 'GET',
+                        'expectation': [
+                            {
+                                'type': 'HTTP_STATUS',
+                                'status_range': '200 - 300',
+                                'incident': 'MAJOR',
+                            }
+                        ],
+                        'allowed_fails': 0,
+                        'component_id': 1,
+                        'action': ['CREATE_INCIDENT', 'UPDATE_STATUS'],
+                        'public_incidents': True,
+                        'latency_unit': 'ms',
+                        'frequency': 30
+                    }
+                ],
+                'cachet': {
+                    'api_url': 'https: // demo.cachethq.io / api / v1',
+                    'token': 'my_token'
+                }
+            }, self.agent)
 
     def test_init(self):
-        assert self.scheduler.stop == False
+        self.assertFalse(self.scheduler.stop)
 
     def test_start(self):
         # TODO(mtakaki|2016-05-01): We need a better way of testing this method.
         # Leaving it as a placeholder.
         self.scheduler.stop = True
         self.scheduler.start()
+
+        self.agent.start.assert_called()

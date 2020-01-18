@@ -7,6 +7,7 @@ import pytest
 
 from cachet_url_monitor.configuration import HttpStatus, Regex
 from cachet_url_monitor.configuration import Latency
+from cachet_url_monitor.status import ComponentStatus
 
 
 class LatencyTest(unittest.TestCase):
@@ -25,7 +26,7 @@ class LatencyTest(unittest.TestCase):
         request.elapsed = elapsed
         elapsed.total_seconds = total_seconds
 
-        assert self.expectation.get_status(request) == 1
+        assert self.expectation.get_status(request) == ComponentStatus.OPERATIONAL
 
     def test_get_status_unhealthy(self):
         def total_seconds():
@@ -36,7 +37,7 @@ class LatencyTest(unittest.TestCase):
         request.elapsed = elapsed
         elapsed.total_seconds = total_seconds
 
-        assert self.expectation.get_status(request) == 2
+        assert self.expectation.get_status(request) == ComponentStatus.PERFORMANCE_ISSUES
 
     def test_get_message(self):
         def total_seconds():
@@ -73,13 +74,13 @@ class HttpStatusTest(unittest.TestCase):
         request = mock.Mock()
         request.status_code = 200
 
-        assert self.expectation.get_status(request) == 1
+        assert self.expectation.get_status(request) == ComponentStatus.OPERATIONAL
 
     def test_get_status_unhealthy(self):
         request = mock.Mock()
         request.status_code = 400
 
-        assert self.expectation.get_status(request) == 3
+        assert self.expectation.get_status(request) == ComponentStatus.PARTIAL_OUTAGE
 
     def test_get_message(self):
         request = mock.Mock()
@@ -100,13 +101,13 @@ class RegexTest(unittest.TestCase):
         request = mock.Mock()
         request.text = 'We could find stuff\n in this body.'
 
-        assert self.expectation.get_status(request) == 1
+        assert self.expectation.get_status(request) == ComponentStatus.OPERATIONAL
 
     def test_get_status_unhealthy(self):
         request = mock.Mock()
         request.text = 'We will not find it here'
 
-        assert self.expectation.get_status(request) == 3
+        assert self.expectation.get_status(request) == ComponentStatus.PARTIAL_OUTAGE
 
     def test_get_message(self):
         request = mock.Mock()

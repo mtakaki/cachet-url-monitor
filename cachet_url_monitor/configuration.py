@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+from typing import Any, Union
 
 import requests
 from yaml import dump
@@ -16,6 +17,8 @@ from cachet_url_monitor.exceptions import ComponentNonexistentError, MetricNonex
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
+from cachet_url_monitor.status import ComponentStatus
+
 configuration_mandatory_fields = ['url', 'method', 'timeout', 'expectation', 'component_id', 'frequency']
 
 
@@ -34,12 +37,12 @@ class Configuration(object):
     of assessing the API and pushing the results to cachet.
     """
 
-    def __init__(self, config_file, endpoint_index):
-        self.endpoint_index = endpoint_index
-        self.data = config_file
+    def __init__(self, config, endpoint_index: int):
+        self.endpoint_index: int = endpoint_index
+        self.data = config
         self.endpoint = self.data['endpoints'][endpoint_index]
-        self.current_fails = 0
-        self.trigger_update = True
+        self.current_fails: int = 0
+        self.trigger_update: bool = True
 
         if 'name' not in self.endpoint:
             # We have to make this mandatory, otherwise the logs are confusing when there are multiple URLs.
@@ -78,6 +81,7 @@ class Configuration(object):
         # We need the current status so we monitor the status changes. This is necessary for creating incidents.
         self.status = self.client.get_component_status(self.component_id)
         self.previous_status = self.status
+        self.logger.info(f'Component current status: {self.status}')
 
         # Get remaining settings
         self.public_incidents = int(self.endpoint['public_incidents'])
@@ -141,27 +145,27 @@ class Configuration(object):
         except requests.ConnectionError:
             self.message = 'The URL is unreachable: %s %s' % (self.endpoint_method, self.endpoint_url)
             self.logger.warning(self.message)
-            self.status = st.COMPONENT_STATUS_PARTIAL_OUTAGE
+            self.status = st.ComponentStatus.PARTIAL_OUTAGE
             return
         except requests.HTTPError:
             self.message = 'Unexpected HTTP response'
             self.logger.exception(self.message)
-            self.status = st.COMPONENT_STATUS_PARTIAL_OUTAGE
+            self.status = st.ComponentStatus.PARTIAL_OUTAGE
             return
-        except requests.Timeout:
+        except (requests.Timeout, requests.ConnectTimeout):
             self.message = 'Request timed out'
             self.logger.warning(self.message)
-            self.status = st.COMPONENT_STATUS_PERFORMANCE_ISSUES
+            self.status = st.ComponentStatus.PERFORMANCE_ISSUES
             return
 
         # We initially assume the API is healthy.
-        self.status = st.COMPONENT_STATUS_OPERATIONAL
+        self.status: ComponentStatus = st.ComponentStatus.OPERATIONAL
         self.message = ''
         for expectation in self.expectations:
-            status = expectation.get_status(self.request)
+            status: ComponentStatus = expectation.get_status(self.request)
 
             # The greater the status is, the worse the state of the API is.
-            if status > self.status:
+            if status.value > self.status.value:
                 self.status = status
                 self.message = expectation.get_message(self.request)
                 self.logger.info(self.message)
@@ -183,7 +187,7 @@ class Configuration(object):
         and only for non-operational ones above the configured threshold (allowed_fails).
         """
 
-        if self.status != 1:
+        if self.status != st.ComponentStatus.OPERATIONAL:
             self.current_fails = self.current_fails + 1
             self.logger.warning(f'Failure #{self.current_fails} with threshold set to {self.allowed_fails}')
             if self.current_fails <= self.allowed_fails:
@@ -198,25 +202,29 @@ class Configuration(object):
         """
         if self.previous_status == self.status:
             # We don't want to keep spamming if there's no change in status.
+            self.logger.info(f'No changes to component status.')
+            self.trigger_update = False
             return
+
         self.previous_status = self.status
 
         if not self.trigger_update:
             return
 
-        self.api_component_status = self.client.get_component_status(self.component_id)
+        api_component_status = self.client.get_component_status(self.component_id)
 
-        if self.status == self.api_component_status:
+        if self.status == api_component_status:
             return
+        self.status = api_component_status
 
         component_request = self.client.push_status(self.component_id, self.status)
         if component_request.ok:
             # Successful update
-            self.logger.info('Component update: status [%d]' % (self.status,))
+            self.logger.info(f'Component update: status [{self.status}]')
         else:
             # Failed to update the API status
-            self.logger.warning('Component update failed with status [%d]: API'
-                                ' status: [%d]' % (component_request.status_code, self.status))
+            self.logger.warning(f'Component update failed with HTTP status: {component_request.status_code}. API'
+                                f' status: {self.status}')
 
     def push_metrics(self):
         """Pushes the total amount of seconds the request took to get a response from the URL.
@@ -225,16 +233,11 @@ class Configuration(object):
         """
         if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
             # We convert the elapsed time from the request, in seconds, to the configured unit.
-            value = self.default_metric_value if self.status != 1 else latency_unit.convert_to_unit(self.latency_unit,
-                                                                                                    self.request.elapsed.total_seconds())
-            params = {'id': self.metric_id, 'value': value,
-                      'timestamp': self.current_timestamp}
-            metrics_request = requests.post('%s/metrics/%d/points' % (self.api_url, self.metric_id), params=params,
-                                            headers=self.headers)
-
+            metrics_request = self.client.push_metrics(self.metric_id, self.latency_unit,
+                                                       self.request.elapsed.total_seconds(), self.current_timestamp)
             if metrics_request.ok:
                 # Successful metrics upload
-                self.logger.info('Metric uploaded: %.6f %s' % (value, self.latency_unit))
+                self.logger.info('Metric uploaded: %.6f %s' % (self.request.elapsed.total_seconds(), self.latency_unit))
             else:
                 self.logger.warning(f'Metric upload failed with status [{metrics_request.status_code}]')
 
@@ -244,14 +247,10 @@ class Configuration(object):
         """
         if not self.trigger_update:
             return
-        if hasattr(self, 'incident_id') and self.status == st.COMPONENT_STATUS_OPERATIONAL:
-            # If the incident already exists, it means it was unhealthy but now it's healthy again.
-            params = {'status': 4, 'visible': self.public_incidents, 'component_id': self.component_id,
-                      'component_status': self.status,
-                      'notify': True}
+        if hasattr(self, 'incident_id') and self.status == st.ComponentStatus.OPERATIONAL:
+            incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id,
+                                                         previous_incident_id=self.incident_id)
 
-            incident_request = requests.put(f'{self.api_url}/incidents/{self.incident_id}', params=params,
-                                            headers=self.headers)
             if incident_request.ok:
                 # Successful metrics upload
                 self.logger.info(
@@ -260,11 +259,9 @@ class Configuration(object):
             else:
                 self.logger.warning(
                     f'Incident update failed with status [{incident_request.status_code}], message: "{self.message}"')
-        elif not hasattr(self, 'incident_id') and self.status != st.COMPONENT_STATUS_OPERATIONAL:
-            # This is the first time the incident is being created.
-            params = {'name': 'URL unavailable', 'message': self.message, 'status': 1, 'visible': self.public_incidents,
-                      'component_id': self.component_id, 'component_status': self.status, 'notify': True}
-            incident_request = requests.post(f'{self.api_url}/incidents', params=params, headers=self.headers)
+        elif not hasattr(self, 'incident_id') and self.status != st.ComponentStatus.OPERATIONAL:
+            incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id,
+                                                         message=self.message)
             if incident_request.ok:
                 # Successful incident upload.
                 self.incident_id = incident_request.json()['data']['id']
@@ -300,20 +297,20 @@ class Expectation(object):
         self.incident_status = self.parse_incident_status(configuration)
 
     @abc.abstractmethod
-    def get_status(self, response):
+    def get_status(self, response) -> ComponentStatus:
         """Returns the status of the API, following cachet's component status
         documentation: https://docs.cachethq.io/docs/component-statuses
         """
 
     @abc.abstractmethod
-    def get_message(self, response):
+    def get_message(self, response) -> str:
         """Gets the error message."""
 
     @abc.abstractmethod
     def get_default_incident(self):
         """Returns the default status when this incident happens."""
 
-    def parse_incident_status(self, configuration):
+    def parse_incident_status(self, configuration) -> ComponentStatus:
         return st.INCIDENT_MAP.get(configuration.get('incident', None), self.get_default_incident())
 
 
@@ -336,14 +333,14 @@ class HttpStatus(Expectation):
             # We shouldn't look into more than one value, as this is a range value.
             return int(statuses[0]), int(statuses[1])
 
-    def get_status(self, response):
+    def get_status(self, response) -> ComponentStatus:
         if self.status_range[0] <= response.status_code < self.status_range[1]:
-            return st.COMPONENT_STATUS_OPERATIONAL
+            return st.ComponentStatus.OPERATIONAL
         else:
             return self.incident_status
 
     def get_default_incident(self):
-        return st.COMPONENT_STATUS_PARTIAL_OUTAGE
+        return st.ComponentStatus.PARTIAL_OUTAGE
 
     def get_message(self, response):
         return f'Unexpected HTTP status ({response.status_code})'
@@ -357,14 +354,14 @@ class Latency(Expectation):
         self.threshold = configuration['threshold']
         super(Latency, self).__init__(configuration)
 
-    def get_status(self, response):
+    def get_status(self, response) -> ComponentStatus:
         if response.elapsed.total_seconds() <= self.threshold:
-            return st.COMPONENT_STATUS_OPERATIONAL
+            return st.ComponentStatus.OPERATIONAL
         else:
             return self.incident_status
 
     def get_default_incident(self):
-        return st.COMPONENT_STATUS_PERFORMANCE_ISSUES
+        return st.ComponentStatus.PERFORMANCE_ISSUES
 
     def get_message(self, response):
         return 'Latency above threshold: %.4f seconds' % (response.elapsed.total_seconds(),)
@@ -379,14 +376,14 @@ class Regex(Expectation):
         self.regex = re.compile(configuration['regex'], re.UNICODE + re.DOTALL)
         super(Regex, self).__init__(configuration)
 
-    def get_status(self, response):
+    def get_status(self, response) -> ComponentStatus:
         if self.regex.match(response.text):
-            return st.COMPONENT_STATUS_OPERATIONAL
+            return st.ComponentStatus.OPERATIONAL
         else:
             return self.incident_status
 
     def get_default_incident(self):
-        return st.COMPONENT_STATUS_PARTIAL_OUTAGE
+        return st.ComponentStatus.PARTIAL_OUTAGE
 
     def get_message(self, response):
         return 'Regex did not match anything in the body'

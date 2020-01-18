@@ -11,6 +11,11 @@ def normalize_url(url):
     return url
 
 
+def save_config(config_map, filename):
+    with open(filename, 'w') as file:
+        dump(config_map, file)
+
+
 class CachetClient(object):
     """Utility class to interact with CahetHQ server."""
 
@@ -27,7 +32,7 @@ class CachetClient(object):
         """Retrieves all metrics registered in cachet-hq"""
         return requests.get(f"{self.url}/metrics", headers=self.headers).json()['data']
 
-    def generate_config(self, filename):
+    def generate_config(self):
         components = self.get_components()
         generated_endpoints = [
             {
@@ -59,12 +64,11 @@ class CachetClient(object):
             },
             'endpoints': generated_endpoints
         }
-        with open(filename, 'w') as file:
-            dump(generated_config, file)
+        return generated_config
 
     def get_default_metric_value(self, metric_id):
         """Returns default value for configured metric."""
-        get_metric_request = requests.get(f"{self.api_url}/metrics/{metric_id}", headers=self.headers)
+        get_metric_request = requests.get(f"{self.url}/metrics/{metric_id}", headers=self.headers)
 
         if get_metric_request.ok:
             return get_metric_request.json()['data']['default_value']
@@ -87,7 +91,7 @@ class CachetClient(object):
     def push_status(self, component_id, status):
         """Pushes the status of the component to the cachet server.
         """
-        params = {'id': self.component_id, 'status': status}
+        params = {'id': component_id, 'status': status}
         return requests.put(f"{self.url}/components/{component_id}", params=params, headers=self.headers)
 
     def push_metrics(self, metric_id, latency_time_unit, elapsed_time_in_seconds, timestamp):
@@ -97,17 +101,18 @@ class CachetClient(object):
         params = {'id': metric_id, 'value': value, 'timestamp': timestamp}
         return requests.post(f"{self.url}/metrics/{metric_id}/points", params=params, headers=self.headers)
 
-    def push_incident(self, status_value, is_public_incident, component_id, previous_incident_id=None, message=None):
+    def push_incident(self, status_value: status.ComponentStatus, is_public_incident: bool, component_id: int,
+                      previous_incident_id=None, message=None):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
         or updates the existing incident once it becomes healthy again.
         """
-        if previous_incident_id and status_value == status.COMPONENT_STATUS_OPERATIONAL:
+        if previous_incident_id and status_value == status.ComponentStatus.OPERATIONAL:
             # If the incident already exists, it means it was unhealthy but now it's healthy again.
             params = {'status': status.IncidentStatus.FIXED.value, 'visible': is_public_incident,
-                      'component_id': component_id, 'component_status': status_value, 'notify': True}
+                      'component_id': component_id, 'component_status': status_value.value, 'notify': True}
 
             return requests.put(f'{self.url}/incidents/{previous_incident_id}', params=params, headers=self.headers)
-        elif not previous_incident_id and status_value != status.COMPONENT_STATUS_OPERATIONAL:
+        elif not previous_incident_id and status_value != status.ComponentStatus.OPERATIONAL:
             # This is the first time the incident is being created.
             params = {'name': 'URL unavailable', 'message': message,
                       'status': status.IncidentStatus.INVESTIGATING.value,
