@@ -45,7 +45,7 @@ class CachetClient(object):
                 'name': component['name'],
                 'url': component['link'],
                 'method': 'GET',
-                'timeout': 0.1,
+                'timeout': 1,
                 'expectation': [
                     {
                         'type': 'HTTP_STATUS',
