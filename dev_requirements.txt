@@ -1,8 +1,9 @@
 codacy-coverage==1.3.11
-ipython==7.8.0
-mock==2.0.0
-pudb==2016.1
-pytest==5.2.2
+coverage==5.0.3
+coveralls==1.10.0
+ipython==7.11.1
+mock==3.0.5
+pudb==2019.2
+pytest==5.3.3
 pytest-cov==2.8.1
-coverage==4.5.2
 requests-mock==1.7.0
