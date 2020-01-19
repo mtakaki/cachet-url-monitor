@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='cachet-url-monitor',
-      version='0.6.3',
+      version='0.6.4',
       description='Cachet URL monitor plugin',
       author='Mitsuo Takaki',
       author_email='mitsuotakaki@gmail.com',
