@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from typing import Dict
+from typing import Optional
 
 import click
 import requests
@@ -81,7 +82,7 @@ class CachetClient(object):
         else:
             raise exceptions.MetricNonexistentError(metric_id)
 
-    def get_component_status(self, component_id):
+    def get_component_status(self, component_id: int) -> Optional[status.ComponentStatus]:
         """Retrieves the current status of the given component. It will fail if the component does
         not exist or doesn't respond with the expected data.
         :return component status.
@@ -94,13 +95,13 @@ class CachetClient(object):
         else:
             raise exceptions.ComponentNonexistentError(component_id)
 
-    def push_status(self, component_id, component_status):
+    def push_status(self, component_id: int, component_status: status.ComponentStatus):
         """Pushes the status of the component to the cachet server.
         """
-        params = {'id': component_id, 'status': component_status}
+        params = {'id': component_id, 'status': component_status.value}
         return requests.put(f"{self.url}/components/{component_id}", params=params, headers=self.headers)
 
-    def push_metrics(self, metric_id, latency_time_unit, elapsed_time_in_seconds, timestamp):
+    def push_metrics(self, metric_id: int, latency_time_unit: str, elapsed_time_in_seconds: int, timestamp: int):
         """Pushes the total amount of seconds the request took to get a response from the URL.
         """
         value = latency_unit.convert_to_unit(latency_time_unit, elapsed_time_in_seconds)
@@ -122,7 +123,7 @@ class CachetClient(object):
             # This is the first time the incident is being created.
             params = {'name': 'URL unavailable', 'message': message,
                       'status': status.IncidentStatus.INVESTIGATING.value,
-                      'visible': is_public_incident, 'component_id': component_id, 'component_status': status_value,
+                      'visible': is_public_incident, 'component_id': component_id, 'component_status': status_value.value,
                       'notify': True}
             return requests.post(f'{self.url}/incidents', params=params, headers=self.headers)
 

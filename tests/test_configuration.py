@@ -9,6 +9,8 @@ import requests_mock
 from yaml import load, SafeLoader
 
 import cachet_url_monitor.status
+from cachet_url_monitor.client import CachetClient
+import cachet_url_monitor.exceptions
 
 sys.modules['logging'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
@@ -16,35 +18,26 @@ import os
 
 
 class ConfigurationTest(unittest.TestCase):
-    @mock.patch.dict(os.environ, {'CACHET_TOKEN': 'token2'})
+    client: CachetClient
+    configuration: Configuration
+
     def setUp(self):
         def getLogger(name):
             self.mock_logger = mock.Mock()
             return self.mock_logger
 
         sys.modules['logging'].getLogger = getLogger
-
-        # def get(url, headers):
-        #     get_return = mock.Mock()
-        #     get_return.ok = True
-        #     get_return.json = mock.Mock()
-        #     get_return.json.return_value = {'data': {'status': 1, 'default_value': 0.5}}
-        #     return get_return
-        #
-        # sys.modules['requests'].get = get
-
+        self.client = mock.Mock()
+        # We set the initial status to OPERATIONAL.
+        self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
         self.configuration = Configuration(
-            load(open(os.path.join(os.path.dirname(__file__), 'configs/config.yml'), 'rt'), SafeLoader), 0)
-        # sys.modules['requests'].Timeout = Timeout
-        # sys.modules['requests'].ConnectionError = ConnectionError
-        # sys.modules['requests'].HTTPError = HTTPError
+            load(open(os.path.join(os.path.dirname(__file__), 'configs/config.yml'), 'rt'), SafeLoader), 0, self.client,
+            'token2')
 
     def test_init(self):
         self.assertEqual(len(self.configuration.data), 2, 'Number of root elements in config.yml is incorrect')
         self.assertEqual(len(self.configuration.expectations), 3, 'Number of expectations read from file is incorrect')
         self.assertDictEqual(self.configuration.headers, {'X-Cachet-Token': 'token2'}, 'Header was not set correctly')
-        self.assertEqual(self.configuration.api_url, 'https://demo.cachethq.io/api/v1',
-                         'Cachet API URL was set incorrectly')
         self.assertDictEqual(self.configuration.endpoint_header, {'SOME-HEADER': 'SOME-VALUE'}, 'Header is incorrect')
 
     @requests_mock.mock()
@@ -98,20 +91,35 @@ class ConfigurationTest(unittest.TestCase):
                          'Component status set incorrectly')
         self.mock_logger.exception.assert_called_with('Unexpected HTTP response')
 
-    @requests_mock.mock()
-    def test_push_status(self, m):
-        m.put('https://demo.cachethq.io/api/v1/components/1?id=1&status=1', headers={'X-Cachet-Token': 'token2'})
-        self.assertEqual(self.configuration.status, cachet_url_monitor.status.ComponentStatus.OPERATIONAL,
-                         'Incorrect component update parameters')
+    def test_push_status(self):
+        self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        push_status_response = mock.Mock()
+        self.client.push_status.return_value = push_status_response
+        push_status_response.ok = True
+        self.configuration.status = cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE
+
         self.configuration.push_status()
 
-    @requests_mock.mock()
-    def test_push_status_with_failure(self, m):
-        m.put('https://demo.cachethq.io/api/v1/components/1?id=1&status=1', headers={'X-Cachet-Token': 'token2'},
-              status_code=400)
-        self.assertEqual(self.configuration.status, cachet_url_monitor.status.ComponentStatus.OPERATIONAL,
-                         'Incorrect component update parameters')
+        self.client.push_status.assert_called_once_with(1, cachet_url_monitor.status.ComponentStatus.OPERATIONAL)
+
+    def test_push_status_with_failure(self):
+        self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        push_status_response = mock.Mock()
+        self.client.push_status.return_value = push_status_response
+        push_status_response.ok = False
+        self.configuration.status = cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE
+
         self.configuration.push_status()
+
+        self.client.push_status.assert_called_once_with(1, cachet_url_monitor.status.ComponentStatus.OPERATIONAL)
+
+    def test_push_status_same_status(self):
+        self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        self.configuration.status = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+
+        self.configuration.push_status()
+
+        self.client.push_status.assert_not_called()
 
 
 class ConfigurationMultipleUrlTest(unittest.TestCase):
@@ -119,10 +127,13 @@ class ConfigurationMultipleUrlTest(unittest.TestCase):
     def setUp(self):
         config_yaml = load(open(os.path.join(os.path.dirname(__file__), 'configs/config_multiple_urls.yml'), 'rt'),
                            SafeLoader)
+        self.client = []
         self.configuration = []
 
         for index in range(len(config_yaml['endpoints'])):
-            self.configuration.append(Configuration(config_yaml, index))
+            client = mock.Mock()
+            self.client.append(client)
+            self.configuration.append(Configuration(config_yaml, index, client, 'token2'))
 
     def test_init(self):
         expected_method = ['GET', 'POST']
@@ -133,8 +144,6 @@ class ConfigurationMultipleUrlTest(unittest.TestCase):
             self.assertEqual(len(config.data), 2, 'Number of root elements in config.yml is incorrect')
             self.assertEqual(len(config.expectations), 1, 'Number of expectations read from file is incorrect')
             self.assertDictEqual(config.headers, {'X-Cachet-Token': 'token2'}, 'Header was not set correctly')
-            self.assertEqual(config.api_url, 'https://demo.cachethq.io/api/v1',
-                             'Cachet API URL was set incorrectly')
 
             self.assertEqual(expected_method[index], config.endpoint_method)
             self.assertEqual(expected_url[index], config.endpoint_url)
@@ -146,4 +155,4 @@ class ConfigurationNegativeTest(unittest.TestCase):
         with pytest.raises(cachet_url_monitor.configuration.ConfigurationValidationError):
             self.configuration = Configuration(
                 load(open(os.path.join(os.path.dirname(__file__), 'configs/config_invalid_type.yml'), 'rt'),
-                     SafeLoader), 0)
+                     SafeLoader), 0, mock.Mock(), 'token2')

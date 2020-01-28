@@ -145,3 +145,11 @@ class ClientTest(unittest.TestCase):
 
         self.assertEqual(status, ComponentStatus.OPERATIONAL,
                          'Getting component status value is incorrect.')
+
+    @requests_mock.mock()
+    def test_push_status(self, m):
+        m.put(f'{CACHET_URL}/components/123?id=123&status={ComponentStatus.PARTIAL_OUTAGE.value}',
+              headers={'X-Cachet-Token': TOKEN})
+        response = self.client.push_status(123, ComponentStatus.PARTIAL_OUTAGE)
+
+        self.assertTrue(response.ok, 'Pushing status value is failed.')
