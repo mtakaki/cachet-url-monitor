@@ -2,16 +2,15 @@
 import abc
 import copy
 import logging
-import os
 import re
 import time
+from typing import Dict
 
 import requests
 from yaml import dump
 
 import cachet_url_monitor.status as st
 from cachet_url_monitor.client import CachetClient, normalize_url
-from cachet_url_monitor.exceptions import MetricNonexistentError
 from cachet_url_monitor.status import ComponentStatus
 
 # This is the mandatory fields that must be in the configuration file in this
@@ -33,13 +32,37 @@ class Configuration(object):
     """Represents a configuration file, but it also includes the functionality
     of assessing the API and pushing the results to cachet.
     """
+    endpoint_index: int
+    endpoint: str
+    client: CachetClient
+    token: str
+    current_fails: int
+    trigger_update: bool
+    headers: Dict[str, str]
 
-    def __init__(self, config, endpoint_index: int):
-        self.endpoint_index: int = endpoint_index
+    endpoint_method: str
+    endpoint_url: str
+    endpoint_timeout: int
+    endpoint_header: Dict[str, str]
+
+    allowed_fails: int
+    component_id: int
+    metric_id: int
+    default_metric_value: int
+    latency_unit: str
+
+    status: ComponentStatus
+    previous_status: ComponentStatus
+
+    def __init__(self, config, endpoint_index: int, client: CachetClient, token: str):
+        self.endpoint_index = endpoint_index
         self.data = config
         self.endpoint = self.data['endpoints'][endpoint_index]
-        self.current_fails: int = 0
-        self.trigger_update: bool = True
+        self.client = client
+        self.token = token
+
+        self.current_fails = 0
+        self.trigger_update = True
 
         if 'name' not in self.endpoint:
             # We have to make this mandatory, otherwise the logs are confusing when there are multiple URLs.
@@ -54,7 +77,7 @@ class Configuration(object):
         self.validate()
 
         # We store the main information from the configuration file, so we don't keep reading from the data dictionary.
-        self.token = os.environ.get('CACHET_TOKEN') or self.data['cachet']['token']
+
         self.headers = {'X-Cachet-Token': self.token}
 
         self.endpoint_method = self.endpoint['method']
@@ -63,14 +86,11 @@ class Configuration(object):
         self.endpoint_header = self.endpoint.get('header') or None
         self.allowed_fails = self.endpoint.get('allowed_fails') or 0
 
-        self.api_url = os.environ.get('CACHET_API_URL') or self.data['cachet']['api_url']
         self.component_id = self.endpoint['component_id']
         self.metric_id = self.endpoint.get('metric_id')
 
-        self.client = CachetClient(self.api_url, self.token)
-
         if self.metric_id is not None:
-            self.default_metric_value = self.get_default_metric_value(self.metric_id)
+            self.default_metric_value = self.client.get_default_metric_value(self.metric_id)
 
         # The latency_unit configuration is not mandatory and we fallback to seconds, by default.
         self.latency_unit = self.data['cachet'].get('latency_unit') or 's'
@@ -87,15 +107,6 @@ class Configuration(object):
         self.expectations = [Expectation.create(expectation) for expectation in self.endpoint['expectation']]
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
-
-    def get_default_metric_value(self, metric_id):
-        """Returns default value for configured metric."""
-        get_metric_request = requests.get('%s/metrics/%s' % (self.api_url, metric_id), headers=self.headers)
-
-        if get_metric_request.ok:
-            return get_metric_request.json()['data']['default_value']
-        else:
-            raise MetricNonexistentError(metric_id)
 
     def get_action(self):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
@@ -162,7 +173,7 @@ class Configuration(object):
             status: ComponentStatus = expectation.get_status(self.request)
 
             # The greater the status is, the worse the state of the API is.
-            if status.value > self.status.value:
+            if status.value >= self.status.value:
                 self.status = status
                 self.message = expectation.get_message(self.request)
                 self.logger.info(self.message)

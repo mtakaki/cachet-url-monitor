@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+from typing import Dict
 
-seconds_per_unit = {"ms": 1000, "milliseconds": 1000, "s": 1, "seconds": 1, "m": float(1) / 60,
+seconds_per_unit: Dict[str, float] = {"ms": 1000, "milliseconds": 1000, "s": 1, "seconds": 1, "m": float(1) / 60,
                     "minutes": float(1) / 60, "h": float(1) / 3600, "hours": float(1) / 3600}
 
 
-def convert_to_unit(time_unit, value):
+def convert_to_unit(time_unit: str, value: float):
     """
     Will convert the given value from seconds to the given time_unit.
 
