@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import abc
 import copy
 import logging
-import re
 import time
 from typing import Dict
 
@@ -11,21 +9,13 @@ from yaml import dump
 
 import cachet_url_monitor.status as st
 from cachet_url_monitor.client import CachetClient, normalize_url
+from cachet_url_monitor.exceptions import ConfigurationValidationError
+from cachet_url_monitor.expectation import Expectation
 from cachet_url_monitor.status import ComponentStatus
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
 configuration_mandatory_fields = ['url', 'method', 'timeout', 'expectation', 'component_id', 'frequency']
-
-
-class ConfigurationValidationError(Exception):
-    """Exception raised when there's a validation error."""
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
 
 
 class Configuration(object):
@@ -53,6 +43,7 @@ class Configuration(object):
 
     status: ComponentStatus
     previous_status: ComponentStatus
+    message: str
 
     def __init__(self, config, endpoint_index: int, client: CachetClient, token: str):
         self.endpoint_index = endpoint_index
@@ -167,13 +158,13 @@ class Configuration(object):
             return
 
         # We initially assume the API is healthy.
-        self.status: ComponentStatus = st.ComponentStatus.OPERATIONAL
+        self.status = st.ComponentStatus.OPERATIONAL
         self.message = ''
         for expectation in self.expectations:
             status: ComponentStatus = expectation.get_status(self.request)
 
             # The greater the status is, the worse the state of the API is.
-            if status.value >= self.status.value:
+            if status.value > self.status.value:
                 self.status = status
                 self.message = expectation.get_message(self.request)
                 self.logger.info(self.message)
@@ -223,7 +214,6 @@ class Configuration(object):
 
         if self.status == api_component_status:
             return
-        self.status = api_component_status
 
         component_request = self.client.push_status(self.component_id, self.status)
         if component_request.ok:
@@ -278,123 +268,3 @@ class Configuration(object):
             else:
                 self.logger.warning(
                     f'Incident upload failed with status [{incident_request.status_code}], message: "{self.message}"')
-
-
-class Expectation(object):
-    """Base class for URL result expectations. Any new expectation should extend
-    this class and the name added to create() method.
-    """
-
-    @staticmethod
-    def create(configuration):
-        """Creates a list of expectations based on the configuration types
-        list.
-        """
-        # If a need expectation is created, this is where we need to add it.
-        expectations = {
-            'HTTP_STATUS': HttpStatus,
-            'LATENCY': Latency,
-            'REGEX': Regex
-        }
-        if configuration['type'] not in expectations:
-            raise ConfigurationValidationError(f"Invalid type: {configuration['type']}")
-
-        return expectations.get(configuration['type'])(configuration)
-
-    def __init__(self, configuration):
-        self.incident_status = self.parse_incident_status(configuration)
-
-    @abc.abstractmethod
-    def get_status(self, response) -> ComponentStatus:
-        """Returns the status of the API, following cachet's component status
-        documentation: https://docs.cachethq.io/docs/component-statuses
-        """
-
-    @abc.abstractmethod
-    def get_message(self, response) -> str:
-        """Gets the error message."""
-
-    @abc.abstractmethod
-    def get_default_incident(self):
-        """Returns the default status when this incident happens."""
-
-    def parse_incident_status(self, configuration) -> ComponentStatus:
-        return st.INCIDENT_MAP.get(configuration.get('incident', None), self.get_default_incident())
-
-
-class HttpStatus(Expectation):
-    def __init__(self, configuration):
-        self.status_range = HttpStatus.parse_range(configuration['status_range'])
-        super(HttpStatus, self).__init__(configuration)
-
-    @staticmethod
-    def parse_range(range_string):
-        if isinstance(range_string, int):
-            # This happens when there's no range and no dash character, it will be parsed as int already.
-            return range_string, range_string + 1
-
-        statuses = range_string.split("-")
-        if len(statuses) == 1:
-            # When there was no range given, we should treat the first number as a single status check.
-            return int(statuses[0]), int(statuses[0]) + 1
-        else:
-            # We shouldn't look into more than one value, as this is a range value.
-            return int(statuses[0]), int(statuses[1])
-
-    def get_status(self, response) -> ComponentStatus:
-        if self.status_range[0] <= response.status_code < self.status_range[1]:
-            return st.ComponentStatus.OPERATIONAL
-        else:
-            return self.incident_status
-
-    def get_default_incident(self):
-        return st.ComponentStatus.PARTIAL_OUTAGE
-
-    def get_message(self, response):
-        return f'Unexpected HTTP status ({response.status_code})'
-
-    def __str__(self):
-        return repr(f'HTTP status range: [{self.status_range[0]}, {self.status_range[1]}[')
-
-
-class Latency(Expectation):
-    def __init__(self, configuration):
-        self.threshold = configuration['threshold']
-        super(Latency, self).__init__(configuration)
-
-    def get_status(self, response) -> ComponentStatus:
-        if response.elapsed.total_seconds() <= self.threshold:
-            return st.ComponentStatus.OPERATIONAL
-        else:
-            return self.incident_status
-
-    def get_default_incident(self):
-        return st.ComponentStatus.PERFORMANCE_ISSUES
-
-    def get_message(self, response):
-        return 'Latency above threshold: %.4f seconds' % (response.elapsed.total_seconds(),)
-
-    def __str__(self):
-        return repr('Latency threshold: %.4f seconds' % (self.threshold,))
-
-
-class Regex(Expectation):
-    def __init__(self, configuration):
-        self.regex_string = configuration['regex']
-        self.regex = re.compile(configuration['regex'], re.UNICODE + re.DOTALL)
-        super(Regex, self).__init__(configuration)
-
-    def get_status(self, response) -> ComponentStatus:
-        if self.regex.match(response.text):
-            return st.ComponentStatus.OPERATIONAL
-        else:
-            return self.incident_status
-
-    def get_default_incident(self):
-        return st.ComponentStatus.PARTIAL_OUTAGE
-
-    def get_message(self, response):
-        return 'Regex did not match anything in the body'
-
-    def __str__(self):
-        return repr(f'Regex: {self.regex_string}')

@@ -92,17 +92,18 @@ class ConfigurationTest(unittest.TestCase):
         self.mock_logger.exception.assert_called_with('Unexpected HTTP response')
 
     def test_push_status(self):
-        self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE
         push_status_response = mock.Mock()
         self.client.push_status.return_value = push_status_response
         push_status_response.ok = True
-        self.configuration.status = cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE
+        self.configuration.previous_status = cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE
+        self.configuration.status = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
 
         self.configuration.push_status()
 
         self.client.push_status.assert_called_once_with(1, cachet_url_monitor.status.ComponentStatus.OPERATIONAL)
 
-    def test_push_status_with_failure(self):
+    def test_push_status_with_new_failure(self):
         self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
         push_status_response = mock.Mock()
         self.client.push_status.return_value = push_status_response
@@ -111,7 +112,7 @@ class ConfigurationTest(unittest.TestCase):
 
         self.configuration.push_status()
 
-        self.client.push_status.assert_called_once_with(1, cachet_url_monitor.status.ComponentStatus.OPERATIONAL)
+        self.client.push_status.assert_called_once_with(1, cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE)
 
     def test_push_status_same_status(self):
         self.client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.OPERATIONAL
