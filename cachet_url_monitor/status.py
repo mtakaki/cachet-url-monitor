@@ -7,6 +7,7 @@ from enum import Enum
 
 
 class ComponentStatus(Enum):
+    UNKNOWN = 0
     OPERATIONAL = 1
     PERFORMANCE_ISSUES = 2
     PARTIAL_OUTAGE = 3

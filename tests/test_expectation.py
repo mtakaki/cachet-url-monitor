@@ -5,8 +5,7 @@ import unittest
 import mock
 import pytest
 
-from cachet_url_monitor.configuration import HttpStatus, Regex
-from cachet_url_monitor.configuration import Latency
+from cachet_url_monitor.expectation import HttpStatus, Regex, Latency
 from cachet_url_monitor.status import ComponentStatus
 
 
@@ -76,9 +75,21 @@ class HttpStatusTest(unittest.TestCase):
 
         assert self.expectation.get_status(request) == ComponentStatus.OPERATIONAL
 
+    def test_get_status_healthy_boundary(self):
+        request = mock.Mock()
+        request.status_code = 299
+
+        assert self.expectation.get_status(request) == ComponentStatus.OPERATIONAL
+
     def test_get_status_unhealthy(self):
         request = mock.Mock()
         request.status_code = 400
+
+        assert self.expectation.get_status(request) == ComponentStatus.PARTIAL_OUTAGE
+
+    def test_get_status_unhealthy_boundary(self):
+        request = mock.Mock()
+        request.status_code = 300
 
         assert self.expectation.get_status(request) == ComponentStatus.PARTIAL_OUTAGE
 
