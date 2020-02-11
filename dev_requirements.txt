@@ -7,3 +7,4 @@ pudb==2019.2
 pytest==5.3.5
 pytest-cov==2.8.1
 requests-mock==1.7.0
+twine==3.1.1
