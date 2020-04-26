@@ -229,7 +229,7 @@ class Configuration(object):
         It only will send a request if the metric id was set in the configuration.
         In case of failed connection trial pushes the default metric value.
         """
-        if 'metric_id' in self.data['cachet'] and hasattr(self, 'request'):
+        if self.metric_id and hasattr(self, 'request'):
             # We convert the elapsed time from the request, in seconds, to the configured unit.
             metrics_request = self.client.push_metrics(self.metric_id, self.latency_unit,
                                                        self.request.elapsed.total_seconds(), self.current_timestamp)
