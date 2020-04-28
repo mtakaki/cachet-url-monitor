@@ -5,7 +5,6 @@ import threading
 import time
 import os
 
-import schedule
 from yaml import load, SafeLoader
 
 from cachet_url_monitor.client import CachetClient
@@ -35,11 +34,6 @@ class Agent(object):
 
         for decorator in self.decorators:
             decorator.execute(self.configuration)
-
-    def start(self):
-        """Sets up the schedule based on the configuration file."""
-        schedule.every(self.configuration.endpoint['frequency']).seconds.do(self.execute)
-
 
 class Decorator(object):
     """Defines the actions a user can configure to be executed when there's an incident."""
@@ -77,10 +71,9 @@ class Scheduler(object):
         self.stop = False
 
     def start(self):
-        self.agent.start()
         self.logger.info('Starting monitor agent...')
         while not self.stop:
-            schedule.run_pending()
+            self.agent.execute()
             time.sleep(self.configuration.endpoint['frequency'])
 
 
