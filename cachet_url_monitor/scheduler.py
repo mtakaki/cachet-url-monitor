@@ -5,7 +5,7 @@ import threading
 import time
 import os
 
-import schedule
+from schedule import Scheduler
 from yaml import load, SafeLoader
 
 from cachet_url_monitor.client import CachetClient
@@ -24,6 +24,7 @@ class Agent(object):
         if decorators is None:
             decorators = []
         self.decorators = decorators
+        self.schedule = Scheduler()
 
     def execute(self):
         """Will verify the API status and push the status and metrics to the
@@ -38,7 +39,7 @@ class Agent(object):
 
     def start(self):
         """Sets up the schedule based on the configuration file."""
-        schedule.every(self.configuration.endpoint['frequency']).seconds.do(self.execute)
+        self.schedule.every(self.configuration.endpoint['frequency']).seconds.do(self.execute)
 
 
 class Decorator(object):
@@ -69,9 +70,9 @@ class PushMetricsDecorator(Decorator):
         configuration.push_metrics()
 
 
-class Scheduler(object):
+class Runner(object):
     def __init__(self, configuration, agent):
-        self.logger = logging.getLogger('cachet_url_monitor.scheduler.Scheduler')
+        self.logger = logging.getLogger('cachet_url_monitor.scheduler.Runner')
         self.configuration = configuration
         self.agent = agent
         self.stop = False
@@ -80,7 +81,7 @@ class Scheduler(object):
         self.agent.start()
         self.logger.info('Starting monitor agent...')
         while not self.stop:
-            schedule.run_pending()
+            self.agent.schedule.run_pending()
             time.sleep(self.configuration.endpoint['frequency'])
 
 
@@ -145,5 +146,5 @@ if __name__ == "__main__":
         token = os.environ.get('CACHET_TOKEN') or config_data['cachet']['token']
         api_url = os.environ.get('CACHET_API_URL') or config_data['cachet']['api_url']
         configuration = Configuration(config_data, endpoint_index, CachetClient(api_url, token), token)
-        NewThread(Scheduler(configuration,
+        NewThread(Runner(configuration,
                             build_agent(configuration, logging.getLogger('cachet_url_monitor.scheduler')))).start()
