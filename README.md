@@ -63,6 +63,12 @@ endpoints:
 cachet:
   api_url: http://status.cachethq.io/api/v1
   token: mytoken
+webhooks:
+  - url: "https://push.example.com/message?token=<apptoken>"
+    params:
+      title: "{title}"
+      message: "{message}"
+      priority: 5
 ```
 
 - **endpoints**, the configuration about the URL/Urls that will be monitored.
@@ -88,6 +94,9 @@ cachet:
 - **cachet**, this is the settings for our cachet server.
     - **api_url**, the cachet API endpoint. *mandatory*
     - **token**, the API token. *mandatory*
+- **webhooks**, generic webhooks to be notified about incident updates
+    - **url**, webhook URL, will be interpolated
+    - **params**, POST parameters, will be interpolated
 
 Each `expectation` has their own default incident status. It can be overridden by setting the `incident` property to any of the following values:
 - `PARTIAL`
@@ -101,6 +110,13 @@ By choosing any of the aforementioned statuses, it will let you control the kind
 | HTTP_STATUS | PARTIAL |
 | LATENCY | PERFORMANCE |
 | REGEX | PARTIAL |
+
+Following parameters are available in webhook interpolation
+
+| Parameter | Description |
+| --------- | ----------- |
+| `{title}` | Event title, includes endpoint name and short status |
+| `{message}` | Event message, same as sent to Cachet |
 
 ## Setting up
 

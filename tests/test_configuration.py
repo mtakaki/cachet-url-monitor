@@ -9,6 +9,7 @@ from yaml import load, SafeLoader
 
 import cachet_url_monitor.exceptions
 import cachet_url_monitor.status
+from cachet_url_monitor.webhook import Webhook
 
 sys.modules['logging'] = mock.Mock()
 from cachet_url_monitor.configuration import Configuration
@@ -44,6 +45,13 @@ def invalid_config_file():
 
 
 @pytest.fixture()
+def webhooks_config_file():
+    with open(os.path.join(os.path.dirname(__file__), 'configs/config_webhooks.yml'), 'rt') as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
 def mock_logger():
     mock_logger = mock.Mock()
 
@@ -57,6 +65,14 @@ def mock_logger():
 @pytest.fixture()
 def configuration(config_file, mock_client, mock_logger):
     yield Configuration(config_file, 0, mock_client)
+
+
+@pytest.fixture()
+def webhooks_configuration(webhooks_config_file, mock_client, mock_logger):
+    webhooks = []
+    for webhook in webhooks_config_file.get('webhooks', []):
+        webhooks.append(Webhook(webhook['url'], webhook.get('params', {})))
+    yield Configuration(webhooks_config_file, 0, mock_client, webhooks)
 
 
 @pytest.fixture()
@@ -128,6 +144,23 @@ def test_evaluate_with_http_error(configuration, mock_logger):
 
         assert configuration.status == cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE, 'Component status set incorrectly'
         mock_logger.exception.assert_called_with('Unexpected HTTP response')
+
+
+def test_webhooks(webhooks_configuration, mock_logger, mock_client):
+    assert len(webhooks_configuration.webhooks) == 2
+    push_incident_response = mock.Mock()
+    push_incident_response.ok = False
+    mock_client.push_incident.return_value = push_incident_response
+    with requests_mock.mock() as m:
+        m.get('http://localhost:8080/swagger', exc=requests.HTTPError)
+        m.post('https://push.example.com/foo%20unavailable', text='')
+        m.post('https://push.example.com/message?token=%3Capptoken%3E&title=foo+unavailable', text='')
+        webhooks_configuration.evaluate()
+
+        assert webhooks_configuration.status == cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE, 'Component status set incorrectly'
+        mock_logger.exception.assert_called_with('Unexpected HTTP response')
+        webhooks_configuration.push_incident()
+        mock_logger.info.assert_called_with('Webhook https://push.example.com/message?token=<apptoken> triggered with foo unavailable')
 
 
 def test_push_status(configuration, mock_client):

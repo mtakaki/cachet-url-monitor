@@ -3,6 +3,8 @@ import copy
 import logging
 import time
 from typing import Dict
+from typing import List
+from typing import Optional
 
 import requests
 from yaml import dump
@@ -12,6 +14,7 @@ from cachet_url_monitor.client import CachetClient, normalize_url
 from cachet_url_monitor.exceptions import ConfigurationValidationError
 from cachet_url_monitor.expectation import Expectation
 from cachet_url_monitor.status import ComponentStatus
+from cachet_url_monitor.webhook import Webhook
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
@@ -25,6 +28,7 @@ class Configuration(object):
     endpoint_index: int
     endpoint: str
     client: CachetClient
+    webhooks: List[Webhook]
     current_fails: int
     trigger_update: bool
 
@@ -43,11 +47,12 @@ class Configuration(object):
     previous_status: ComponentStatus
     message: str
 
-    def __init__(self, config, endpoint_index: int, client: CachetClient):
+    def __init__(self, config, endpoint_index: int, client: CachetClient, webhooks : Optional[List[Webhook]] = None):
         self.endpoint_index = endpoint_index
         self.data = config
         self.endpoint = self.data['endpoints'][endpoint_index]
         self.client = client
+        self.webhooks = webhooks or []
 
         self.current_fails = 0
         self.trigger_update = True
@@ -232,6 +237,24 @@ class Configuration(object):
             else:
                 self.logger.warning(f'Metric upload failed with status [{metrics_request.status_code}]')
 
+    def trigger_webhooks(self):
+        """Trigger webhooks."""
+        if self.status == st.ComponentStatus.PERFORMANCE_ISSUES:
+            message = self.message
+            title = f'{self.endpoint["name"]} degraded'
+        elif self.status == st.ComponentStatus.OPERATIONAL:
+            message = 'Incident resolved'
+            title = f'{self.endpoint["name"]} OK'
+        else:
+            message = self.message
+            title = f'{self.endpoint["name"]} unavailable'
+        for webhook in self.webhooks:
+            webhook_request = webhook.push_incident(title, message)
+            if webhook_request.ok:
+                self.logger.info(f'Webhook {webhook.url} triggered with {title}')
+            else:
+                self.logger.warning(f'Webhook {webhook.url} failed with status [{webhook_request.status_code}]')
+
     def push_incident(self):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
         or updates the existing incident once it becomes healthy again.
@@ -250,6 +273,8 @@ class Configuration(object):
             else:
                 self.logger.warning(
                     f'Incident update failed with status [{incident_request.status_code}], message: "{self.message}"')
+
+            self.trigger_webhooks()
         elif not hasattr(self, 'incident_id') and self.status != st.ComponentStatus.OPERATIONAL:
             incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id,
                                                          message=self.message)
@@ -261,3 +286,5 @@ class Configuration(object):
             else:
                 self.logger.warning(
                     f'Incident upload failed with status [{incident_request.status_code}], message: "{self.message}"')
+
+            self.trigger_webhooks()
