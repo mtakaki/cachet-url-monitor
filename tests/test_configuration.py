@@ -70,6 +70,7 @@ def test_init(configuration):
     assert len(configuration.expectations) == 3, 'Number of expectations read from file is incorrect'
     assert configuration.headers == {'X-Cachet-Token': 'token2'}, 'Header was not set correctly'
     assert configuration.endpoint_header == {'SOME-HEADER': 'SOME-VALUE'}, 'Header is incorrect'
+    assert configuration.latency_unit == 'ms'
 
 
 def test_init_unknown_status(config_file, mock_client):
