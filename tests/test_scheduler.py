@@ -4,7 +4,6 @@ import unittest
 
 import mock
 
-sys.modules['schedule'] = mock.Mock()
 from cachet_url_monitor.scheduler import Agent, Scheduler
 
 
@@ -23,14 +22,6 @@ class AgentTest(unittest.TestCase):
 
         evaluate.assert_called_once()
         push_status.assert_not_called()
-
-    def test_start(self):
-        every = sys.modules['schedule'].every
-        self.configuration.endpoint = {'frequency': 5}
-
-        self.agent.start()
-
-        every.assert_called_with(5)
 
 
 class SchedulerTest(unittest.TestCase):
@@ -83,5 +74,3 @@ class SchedulerTest(unittest.TestCase):
         # Leaving it as a placeholder.
         self.scheduler.stop = True
         self.scheduler.start()
-
-        self.agent.start.assert_called()
