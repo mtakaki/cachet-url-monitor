@@ -69,6 +69,10 @@ webhooks:
       title: "{title}"
       message: "{message}"
       priority: 5
+messages:
+  incident_outage: "{name} is unavailable"
+  incident_operational: "{name} is operational"
+  incident_performance: "{name} has degraded performance"
 ```
 
 - **endpoints**, the configuration about the URL/Urls that will be monitored.
@@ -97,6 +101,10 @@ webhooks:
 - **webhooks**, generic webhooks to be notified about incident updates
     - **url**, webhook URL, will be interpolated
     - **params**, POST parameters, will be interpolated
+- **messages**, customize text for generated events, use any of **endpoint** parameter in interpolation
+    - **incident_outage**, title of incident in case of outage
+    - **incident_performace**, title of incident in case of performance issues
+    - **incident_operational**, title of incident in case service is operational
 
 Each `expectation` has their own default incident status. It can be overridden by setting the `incident` property to any of the following values:
 - `PARTIAL`

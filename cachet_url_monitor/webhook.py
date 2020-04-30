@@ -14,7 +14,7 @@ class Webhook:
     def push_incident(self, title: str, message: str):
         format_args = {
             "title": title,
-            "message": message,
+            "message": message or title,
         }
         # Interpolate URL and params
         url = self.url.format(**format_args)

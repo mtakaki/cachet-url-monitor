@@ -108,7 +108,7 @@ class CachetClient(object):
         params = {'id': metric_id, 'value': value, 'timestamp': timestamp}
         return requests.post(f"{self.url}/metrics/{metric_id}/points", params=params, headers=self.headers)
 
-    def push_incident(self, status_value: status.ComponentStatus, is_public_incident: bool, component_id: int,
+    def push_incident(self, status_value: status.ComponentStatus, is_public_incident: bool, component_id: int, title: str,
                       previous_incident_id=None, message=None):
         """If the component status has changed, we create a new incident (if this is the first time it becomes unstable)
         or updates the existing incident once it becomes healthy again.
@@ -121,7 +121,7 @@ class CachetClient(object):
             return requests.put(f'{self.url}/incidents/{previous_incident_id}', params=params, headers=self.headers)
         elif not previous_incident_id and status_value != status.ComponentStatus.OPERATIONAL:
             # This is the first time the incident is being created.
-            params = {'name': 'URL unavailable', 'message': message,
+            params = {'name': title, 'message': message,
                       'status': status.IncidentStatus.INVESTIGATING.value,
                       'visible': is_public_incident, 'component_id': component_id, 'component_status': status_value.value,
                       'notify': True}

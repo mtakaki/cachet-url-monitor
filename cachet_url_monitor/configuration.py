@@ -20,6 +20,19 @@ from cachet_url_monitor.webhook import Webhook
 # same exact structure.
 configuration_mandatory_fields = ['url', 'method', 'timeout', 'expectation', 'component_id', 'frequency']
 
+incident_title_map = {
+    ComponentStatus.UNKNOWN: "incident_outage",
+    ComponentStatus.OPERATIONAL: "incident_operational",
+    ComponentStatus.PERFORMANCE_ISSUES: "incident_performance",
+    ComponentStatus.PARTIAL_OUTAGE: "incident_outage",
+    ComponentStatus.MAJOR_OUTAGE: "incident_outage",
+}
+default_messages = {
+    "incident_outage": "{name} is unavailable",
+    "incident_operational": "{name} is operational",
+    "incident_performance": "{name} has degraded performance",
+}
+
 
 class Configuration(object):
     """Represents a configuration file, but it also includes the functionality
@@ -51,6 +64,7 @@ class Configuration(object):
         self.endpoint_index = endpoint_index
         self.data = config
         self.endpoint = self.data['endpoints'][endpoint_index]
+        self.messages = config.get("messages", default_messages)
         self.client = client
         self.webhooks = webhooks or []
 
@@ -99,6 +113,12 @@ class Configuration(object):
         for expectation in self.expectations:
             self.logger.info('Registered expectation: %s' % (expectation,))
 
+    def get_incident_title(self):
+        """Generates incident title for current status."""
+        key = incident_title_map[self.status]
+        template = self.messages.get(key, default_messages[key])
+        return template.format(**self.endpoint)
+
     def get_action(self):
         """Retrieves the action list from the configuration. If it's empty, returns an empty list.
         :return: The list of actions, which can be an empty list.
@@ -123,6 +143,10 @@ class Configuration(object):
                     (isinstance(self.endpoint['expectation'], list) and
                      len(self.endpoint['expectation']) == 0)):
                 configuration_errors.append('endpoint.expectation')
+
+        for key, message in self.messages.items():
+            if not isinstance(message, str):
+                configuration_errors.append(f'message.{key}')
 
         if len(configuration_errors) > 0:
             raise ConfigurationValidationError(
@@ -249,7 +273,7 @@ class Configuration(object):
             message = self.message
             title = f'{self.endpoint["name"]} unavailable'
         for webhook in self.webhooks:
-            webhook_request = webhook.push_incident(title, message)
+            webhook_request = webhook.push_incident(self.get_incident_title(), self.message)
             if webhook_request.ok:
                 self.logger.info(f'Webhook {webhook.url} triggered with {title}')
             else:
@@ -262,7 +286,7 @@ class Configuration(object):
         if not self.trigger_update:
             return
         if hasattr(self, 'incident_id') and self.status == st.ComponentStatus.OPERATIONAL:
-            incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id,
+            incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id, self.get_incident_title(),
                                                          previous_incident_id=self.incident_id)
 
             if incident_request.ok:
@@ -276,7 +300,7 @@ class Configuration(object):
 
             self.trigger_webhooks()
         elif not hasattr(self, 'incident_id') and self.status != st.ComponentStatus.OPERATIONAL:
-            incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id,
+            incident_request = self.client.push_incident(self.status, self.public_incidents, self.component_id, self.get_incident_title(),
                                                          message=self.message)
             if incident_request.ok:
                 # Successful incident upload.
