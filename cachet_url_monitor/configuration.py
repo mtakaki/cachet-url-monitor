@@ -25,10 +25,8 @@ class Configuration(object):
     endpoint_index: int
     endpoint: str
     client: CachetClient
-    token: str
     current_fails: int
     trigger_update: bool
-    headers: Dict[str, str]
 
     endpoint_method: str
     endpoint_url: str
@@ -45,12 +43,11 @@ class Configuration(object):
     previous_status: ComponentStatus
     message: str
 
-    def __init__(self, config, endpoint_index: int, client: CachetClient, token: str):
+    def __init__(self, config, endpoint_index: int, client: CachetClient):
         self.endpoint_index = endpoint_index
         self.data = config
         self.endpoint = self.data['endpoints'][endpoint_index]
         self.client = client
-        self.token = token
 
         self.current_fails = 0
         self.trigger_update = True
@@ -68,8 +65,6 @@ class Configuration(object):
         self.validate()
 
         # We store the main information from the configuration file, so we don't keep reading from the data dictionary.
-
-        self.headers = {'X-Cachet-Token': self.token}
 
         self.endpoint_method = self.endpoint['method']
         self.endpoint_url = normalize_url(self.endpoint['url'])
@@ -174,8 +169,6 @@ class Configuration(object):
 
     def __repr__(self):
         temporary_data = copy.deepcopy(self.data)
-        # Removing the token so we don't leak it in the logs.
-        del temporary_data['cachet']['token']
         temporary_data['endpoints'] = temporary_data['endpoints'][self.endpoint_index]
 
         return dump(temporary_data, default_flow_style=False)

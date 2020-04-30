@@ -56,26 +56,25 @@ def mock_logger():
 
 @pytest.fixture()
 def configuration(config_file, mock_client, mock_logger):
-    yield Configuration(config_file, 0, mock_client, 'token2')
+    yield Configuration(config_file, 0, mock_client)
 
 
 @pytest.fixture()
 def multiple_urls_configuration(multiple_urls_config_file, mock_client, mock_logger):
-    yield [Configuration(multiple_urls_config_file, index, mock_client, 'token2') for index in
+    yield [Configuration(multiple_urls_config_file, index, mock_client) for index in
            range(len(multiple_urls_config_file['endpoints']))]
 
 
 def test_init(configuration):
     assert len(configuration.data) == 2, 'Number of root elements in config.yml is incorrect'
     assert len(configuration.expectations) == 3, 'Number of expectations read from file is incorrect'
-    assert configuration.headers == {'X-Cachet-Token': 'token2'}, 'Header was not set correctly'
     assert configuration.endpoint_header == {'SOME-HEADER': 'SOME-VALUE'}, 'Header is incorrect'
     assert configuration.latency_unit == 'ms'
 
 
 def test_init_unknown_status(config_file, mock_client):
     mock_client.get_component_status.return_value = cachet_url_monitor.status.ComponentStatus.UNKNOWN
-    configuration = Configuration(config_file, 0, mock_client, 'token2')
+    configuration = Configuration(config_file, 0, mock_client)
 
     assert configuration.previous_status == cachet_url_monitor.status.ComponentStatus.UNKNOWN
 
@@ -174,7 +173,6 @@ def test_init_multiple_urls(multiple_urls_configuration):
         config = multiple_urls_configuration[index]
         assert len(config.data) == 2, 'Number of root elements in config.yml is incorrect'
         assert len(config.expectations) == 1, 'Number of expectations read from file is incorrect'
-        assert config.headers == {'X-Cachet-Token': 'token2'}, 'Header was not set correctly'
 
         assert expected_method[index] == config.endpoint_method
         assert expected_url[index] == config.endpoint_url
@@ -182,4 +180,4 @@ def test_init_multiple_urls(multiple_urls_configuration):
 
 def test_init_invalid_configuration(invalid_config_file, mock_client):
     with pytest.raises(cachet_url_monitor.configuration.ConfigurationValidationError):
-        Configuration(invalid_config_file, 0, mock_client, 'token2')
+        Configuration(invalid_config_file, 0, mock_client)

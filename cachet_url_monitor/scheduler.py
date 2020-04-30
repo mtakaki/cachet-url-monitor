@@ -136,6 +136,6 @@ if __name__ == "__main__":
     for endpoint_index in range(len(config_data['endpoints'])):
         token = os.environ.get('CACHET_TOKEN') or config_data['cachet']['token']
         api_url = os.environ.get('CACHET_API_URL') or config_data['cachet']['api_url']
-        configuration = Configuration(config_data, endpoint_index, CachetClient(api_url, token), token)
+        configuration = Configuration(config_data, endpoint_index, CachetClient(api_url, token))
         NewThread(Scheduler(configuration,
                             build_agent(configuration, logging.getLogger('cachet_url_monitor.scheduler')))).start()
