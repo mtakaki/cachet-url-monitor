@@ -114,11 +114,10 @@ class CachetClient(object):
         or updates the existing incident once it becomes healthy again.
         """
         if previous_incident_id and status_value == status.ComponentStatus.OPERATIONAL:
-            # If the incident already exists, it means it was unhealthy but now it's healthy again.
-            params = {'status': status.IncidentStatus.FIXED.value, 'visible': is_public_incident,
-                      'component_id': component_id, 'component_status': status_value.value, 'notify': True}
+            # If the incident already exists, it means it was unhealthy but now it's healthy again, post update
+            params = {'status': status.IncidentStatus.FIXED.value, 'message': title}
 
-            return requests.put(f'{self.url}/incidents/{previous_incident_id}', params=params, headers=self.headers)
+            return requests.post(f'{self.url}/incidents/{previous_incident_id}/updates', params=params, headers=self.headers)
         elif not previous_incident_id and status_value != status.ComponentStatus.OPERATIONAL:
             # This is the first time the incident is being created.
             params = {'name': title, 'message': message,
