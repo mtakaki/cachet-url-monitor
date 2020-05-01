@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='cachet-url-monitor',
-      version='0.6.9',
+      version='0.6.10',
       description='Cachet URL monitor plugin',
       author='Mitsuo Takaki',
       author_email='mitsuotakaki@gmail.com',
@@ -12,8 +12,7 @@ setup(name='cachet-url-monitor',
       license='MIT',
       requires=[
           'requests',
-          'yaml',
-          'schedule',
+          'PyYAML',
           'Click',
       ],
       setup_requires=["pytest-runner"],
