@@ -153,8 +153,8 @@ def test_webhooks(webhooks_configuration, mock_logger, mock_client):
     mock_client.push_incident.return_value = push_incident_response
     with requests_mock.mock() as m:
         m.get('http://localhost:8080/swagger', exc=requests.HTTPError)
-        m.post('https://push.example.com/foo%20unavailable', text='')
-        m.post('https://push.example.com/message?token=%3Capptoken%3E&title=foo+unavailable', text='')
+        m.post('https://push.example.com/foo%20is%20unavailable', text='')
+        m.post('https://push.example.com/message?token=%3Capptoken%3E&title=foo+is+unavailable', text='')
         webhooks_configuration.evaluate()
 
         assert webhooks_configuration.status == cachet_url_monitor.status.ComponentStatus.PARTIAL_OUTAGE, 'Component status set incorrectly'
