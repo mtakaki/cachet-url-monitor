@@ -40,12 +40,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            . venv/bin/activate
-            python -m pytest tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor
-            coveralls
-            coverage xml
-            python-codacy-coverage -r coverage.xml
-            flake8
+            tox -e circle
 
       - store_test_results:
           path: test-reports
