@@ -40,7 +40,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            . bin/activate
+            . venv/bin/activate
             python -m pytest tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor
             coveralls
             coverage xml
