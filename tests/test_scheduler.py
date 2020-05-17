@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import sys
 import unittest
 
 import mock
@@ -25,13 +24,13 @@ class AgentTest(unittest.TestCase):
 
 
 class SchedulerTest(unittest.TestCase):
-    @mock.patch('requests.get')
+    @mock.patch("requests.get")
     def setUp(self, mock_requests):
         def get(url, headers):
             get_return = mock.Mock()
             get_return.ok = True
             get_return.json = mock.Mock()
-            get_return.json.return_value = {'data': {'status': 1}}
+            get_return.json.return_value = {"data": {"status": 1}}
             return get_return
 
         mock_requests.get = get
@@ -40,31 +39,24 @@ class SchedulerTest(unittest.TestCase):
 
         self.scheduler = Scheduler(
             {
-                'endpoints': [
+                "endpoints": [
                     {
-                        'name': 'foo',
-                        'url': 'http://localhost:8080/swagger',
-                        'method': 'GET',
-                        'expectation': [
-                            {
-                                'type': 'HTTP_STATUS',
-                                'status_range': '200 - 300',
-                                'incident': 'MAJOR',
-                            }
-                        ],
-                        'allowed_fails': 0,
-                        'component_id': 1,
-                        'action': ['CREATE_INCIDENT', 'UPDATE_STATUS'],
-                        'public_incidents': True,
-                        'latency_unit': 'ms',
-                        'frequency': 30
+                        "name": "foo",
+                        "url": "http://localhost:8080/swagger",
+                        "method": "GET",
+                        "expectation": [{"type": "HTTP_STATUS", "status_range": "200 - 300", "incident": "MAJOR"}],
+                        "allowed_fails": 0,
+                        "component_id": 1,
+                        "action": ["CREATE_INCIDENT", "UPDATE_STATUS"],
+                        "public_incidents": True,
+                        "latency_unit": "ms",
+                        "frequency": 30,
                     }
                 ],
-                'cachet': {
-                    'api_url': 'https: // demo.cachethq.io / api / v1',
-                    'token': 'my_token'
-                }
-            }, self.agent)
+                "cachet": {"api_url": "https: // demo.cachethq.io / api / v1", "token": "my_token"},
+            },
+            self.agent,
+        )
 
     def test_init(self):
         self.assertFalse(self.scheduler.stop)

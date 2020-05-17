@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict
 
 import requests
 
@@ -12,15 +12,9 @@ class Webhook:
         self.params = params
 
     def push_incident(self, title: str, message: str):
-        format_args = {
-            "title": title,
-            "message": message or title,
-        }
+        format_args = {"title": title, "message": message or title}
         # Interpolate URL and params
         url = self.url.format(**format_args)
-        params = {
-            name: str(value).format(**format_args)
-            for name, value in self.params.items()
-        }
+        params = {name: str(value).format(**format_args) for name, value in self.params.items()}
 
         return requests.post(url, params=params)

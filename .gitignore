@@ -15,3 +15,6 @@ dist/
 pip-selfcheck.json
 .eggs
 test-reports/
+.tox/
+venv
+coverage.xml

@@ -6,10 +6,12 @@
 [![Docker stars](https://img.shields.io/docker/stars/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
 ![License](https://img.shields.io/github/license/mtakaki/cachet-url-monitor.svg)
 [![Latest release](https://img.shields.io/pypi/v/cachet-url-monitor.svg)](https://pypi.python.org/pypi/cachet-url-monitor)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
 cachet-url-monitor
 ========================
-Python plugin for [cachet](cachethq.io) that monitors an URL, verifying it's response status and latency. The frequency the URL is tested is configurable, along with the assertion applied to the request response.
+Python plugin for [cachet](cachethq.io) that monitors an URL, verifying it's response status and latency. The
+ frequency the URL is tested is configurable, along with the assertion applied to the request response.
 
 This project is available at PyPI: [https://pypi.python.org/pypi/cachet-url-monitor](https://pypi.python.org/pypi/cachet-url-monitor)
 
@@ -76,24 +78,32 @@ messages:
 ```
 
 - **endpoints**, the configuration about the URL/Urls that will be monitored.
-    - **name**, The name of the component. This is now mandatory (since 0.6.0) so we can distinguish the logs for each URL being monitored.
+    - **name**, The name of the component. This is now mandatory (since 0.6.0) so we can distinguish the logs for
+     each URL being monitored.
     - **url**, the URL that is going to be monitored. *mandatory*
     - **method**, the HTTP method that will be used by the monitor. *mandatory*
     - **header**, client header passed to the request. Remove if you do not want to pass a header.
     - **timeout**, how long we'll wait to consider the request failed. The unit of it is seconds. *mandatory*
     - **expectation**, the list of expectations set for the URL. *mandatory*
-        - **HTTP_STATUS**, we will verify if the response status code falls into the expected range. Please keep in mind the range is inclusive on the first number and exclusive on the second number. If just one value is specified, it will default to only the given value, for example `200` will be converted to `200-201`. 
-        - **LATENCY**, we measure how long the request took to get a response and fail if it's above the threshold. The unit is in seconds.
+        - **HTTP_STATUS**, we will verify if the response status code falls into the expected range. Please keep in
+         mind the range is inclusive on the first number and exclusive on the second number. If just one value is
+          specified, it will default to only the given value, for example `200` will be converted to `200-201`.
+        - **LATENCY**, we measure how long the request took to get a response and fail if it's above the threshold
+        . The unit is in seconds.
         - **REGEX**, we verify if the response body matches the given regex.
     - **allowed_fails**, create incident/update component status only after specified amount of failed connection trials.
-    - **component_id**, the id of the component we're monitoring. This will be used to update the status of the component. *mandatory*
+    - **component_id**, the id of the component we're monitoring. This will be used to update the status of the
+     component. *mandatory*
     - **metric_id**, this will be used to store the latency of the API. If this is not set, it will be ignored.
-    - **action**, the action to be done when one of the expectations fails. This is optional and if left blank, nothing will be done to the component.
+    - **action**, the action to be done when one of the expectations fails. This is optional and if left blank
+    , nothing will be done to the component.
         - **CREATE_INCIDENT**, we will create an incident when the expectation fails.
         - **UPDATE_STATUS**, updates the component status.
         - **PUSH_METRICS**, uploads response latency metrics.
-    - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
-    - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
+    - **public_incidents**, boolean to decide if created incidents should be visible to everyone or only to logged in
+     users. Important only if `CREATE_INCIDENT` or `UPDATE_STATUS` are set.
+    - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the
+     specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
     - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
 - **cachet**, this is the settings for our cachet server.
     - **api_url**, the cachet API endpoint. *mandatory*
@@ -106,12 +116,14 @@ messages:
     - **incident_performace**, title of incident in case of performance issues
     - **incident_operational**, title of incident in case service is operational
 
-Each `expectation` has their own default incident status. It can be overridden by setting the `incident` property to any of the following values:
+Each `expectation` has their own default incident status. It can be overridden by setting the `incident` property to
+ any of the following values:
 - `PARTIAL`
 - `MAJOR`
 - `PERFORMANCE`
 
-By choosing any of the aforementioned statuses, it will let you control the kind of incident it should be considered. These are the default incident status for each `expectation` type:
+By choosing any of the aforementioned statuses, it will let you control the kind of incident it should be considered
+. These are the default incident status for each `expectation` type:
 
 | Expectation | Incident status |
 | ----------- | --------------- |
@@ -132,9 +144,9 @@ The application should be installed using **virtualenv**, through the following 
 
 ```bash
 $ git clone https://github.com/mtakaki/cachet-url-monitor.git
-$ virtualenv cachet-url-monitor
 $ cd cachet-url-monitor
-$ source bin/activate
+$ virtualenv venv
+$ source venv/bin/activate
 $ pip install -r requirements.txt
 $ python3 setup.py install
 ```
@@ -147,9 +159,12 @@ $ python3 cachet_url_monitor/scheduler.py config.yml
 
 ## Docker
 
-You can run the agent in docker, so you won't need to worry about installing python, virtualenv, or any other dependency into your OS. The `Dockerfile` is already checked in and it's ready to be used.
+You can run the agent in docker, so you won't need to worry about installing python, virtualenv, or any other
+ dependency into your OS. The `Dockerfile` is already checked in and it's ready to be used.
 
-You have two choices, checking this repo out and building the docker image or it can be pulled directly from [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config.yml` file and run (it will pull latest):
+You have two choices, checking this repo out and building the docker image or it can be pulled directly from
+ [dockerhub](https://hub.docker.com/r/mtakaki/cachet-url-monitor/). You will need to create your own custom `config
+ .yml` file and run (it will pull latest):
 
 ```bash
 $ docker pull mtakaki/cachet-url-monitor
@@ -163,11 +178,12 @@ $ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro 
 ```
 
 ## Generating configuration from existing CachetHQ instance (since 0.6.2)
- 
-In order to expedite the creation of your configuration file, you can use the client to automatically scrape the CachetHQ instance and spit out a YAML file. It can be used like this:
+
+In order to expedite the creation of your configuration file, you can use the client to automatically scrape the
+ CachetHQ instance and spit out a YAML file. It can be used like this:
 ```bash
 $ python cachet_url_monitor/client.py http://localhost/api/v1 my-token test.yml
-``` 
+```
 Or from docker (you will end up with a `test.yml` in your `$PWD/tmp` folder):
 ```bash
 $ docker run --rm -it -v $PWD/tmp:/home/tmp/ mtakaki/cachet-url-monitor python3.7 ./cachet_url_monitor/client.py http://localhost/api/v1 my-token /home/tmp/test.yml
@@ -184,7 +200,7 @@ Because we can't predict what expectations will be needed, it will default to th
 - Frequency of 30 seconds.
 - `GET` request.
 - Timeout of 1s.
-- We'll read the `link` field from the components and use it as the URL. 
+- We'll read the `link` field from the components and use it as the URL.
 
 ## Troubleshooting
 
@@ -195,4 +211,20 @@ raise SSLError(e, request=request)
 requests.exceptions.SSLError: HTTPSConnectionPool(host='redacted', port=443): Max retries exceeded with url: /api/v1/components/19 (Caused by SSLError(SSLError(1, u'[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:579)'),))
 ```
 
-It can be resolved by seting the CA bundle environment variable `REQUESTS_CA_BUNDLE` pointing at your certificate file. It can either be set in your python environment, before running this tool, or in your docker container.
+It can be resolved by setting the CA bundle environment variable `REQUESTS_CA_BUNDLE` pointing at your certificate
+ file. It can either be set in your python environment, before running this tool, or in your docker container.
+
+# Development
+If you want to contribute to this project, feel free to fork this repo and post PRs with any improvements or bug
+ fixes. This is highly appreciated, as it's been hard to deal with numerous requests coming my end.
+
+This repo is setup with [pre-commit hooks](https://pre-commit.com/) and it should ensure code style is consistent
+. The steps to start development on this repo is the same as the setup aforementioned above:
+```bash
+$ git clone https://github.com/mtakaki/cachet-url-monitor.git
+$ cd cachet-url-monitor
+$ pre-commit install
+$ virtualenv venv
+$ source venv/bin/activate
+$ tox
+```

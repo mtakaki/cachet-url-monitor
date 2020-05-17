@@ -9,7 +9,7 @@ jobs:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       - image: circleci/python:3.7.2
-      
+
     working_directory: ~/repo
 
     steps:
@@ -26,25 +26,23 @@ jobs:
           name: install dependencies
           command: |
             sudo pip3 install virtualenv
-            virtualenv .
-            source bin/activate
+            virtualenv venv
+            source venv/bin/activate
             pip3 install -r dev_requirements.txt
             pip3 install -r requirements.txt
             pip3 install coveralls
+            pip3 install tox
 
       - save_cache:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "dev_requirements.txt" }}
-        
+
       - run:
           name: run tests
           command: |
-            . bin/activate
-            python -m pytest tests --junitxml=test-reports/junit.xml --cov=cachet_url_monitor
-            coveralls
-            coverage xml
-            python-codacy-coverage -r coverage.xml
+            source venv/bin/activate
+            tox -e circleci
 
       - store_test_results:
           path: test-reports
@@ -52,4 +50,3 @@ jobs:
       - store_artifacts:
           path: test-reports
           destination: test-reports
-          
