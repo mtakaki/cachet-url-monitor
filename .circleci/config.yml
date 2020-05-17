@@ -41,7 +41,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            tox -e circle
+            source venv/bin/activate
+            tox -e circleci
 
       - store_test_results:
           path: test-reports
