@@ -95,6 +95,22 @@ def test_get_aws_secrets_manager(mock_boto3):
     mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")
 
 
+def test_get_aws_secrets_manager_incorrect_secret_key(mock_boto3):
+    mock_boto3.get_secret_value.return_value = {"SecretString": '{"token": "my_token"}'}
+    with pytest.raises(AwsSecretsManagerTokenRetrievalException):
+        get_token(
+            [
+                {
+                    "secret_name": "hq_token",
+                    "type": "AWS_SECRETS_MANAGER",
+                    "region": "us-west-2",
+                    "secret_key": "wrong_key",
+                }
+            ]
+        )
+    mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")
+
+
 def test_get_aws_secrets_manager_binary_secret(mock_boto3):
     mock_boto3.get_secret_value.return_value = {"binary": "it_will_fail"}
     with pytest.raises(AwsSecretsManagerTokenRetrievalException):
