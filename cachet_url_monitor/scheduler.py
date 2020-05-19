@@ -131,11 +131,6 @@ def fatal_error(message: str):
     sys.exit(1)
 
 
-class TokenNotFoundException(Exception):
-    def __repr__(self):
-        return "Token could not be found"
-
-
 if __name__ == "__main__":
     FORMAT = "%(levelname)9s [%(asctime)-15s] %(name)s - %(message)s"
     logging.basicConfig(format=FORMAT, level=logging.INFO)
