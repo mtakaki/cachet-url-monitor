@@ -24,4 +24,8 @@ endpoints:
     latency_unit: ms
 cachet:
   api_url: https://demo.cachethq.io/api/v1
-  token: my_token
+  token:
+    - type: ENVIRONMENT_VARIABLE
+      value: CACHET_TOKEN
+    - type: TOKEN
+      value: my_token

@@ -11,6 +11,7 @@ from yaml import load, SafeLoader
 from cachet_url_monitor.client import CachetClient
 from cachet_url_monitor.configuration import Configuration
 from cachet_url_monitor.webhook import Webhook
+from cachet_url_monitor.plugins.token_provider import get_token
 
 cachet_mandatory_fields = ["api_url", "token"]
 
@@ -152,10 +153,11 @@ if __name__ == "__main__":
     for webhook in config_data.get("webhooks", []):
         webhooks.append(Webhook(webhook["url"], webhook.get("params", {})))
 
+    token: str = get_token(config_data["cachet"]["token"])
+    api_url: str = os.environ.get("CACHET_API_URL") or config_data["cachet"]["api_url"]
+    client: CachetClient = CachetClient(api_url, token)
     for endpoint_index in range(len(config_data["endpoints"])):
-        token = os.environ.get("CACHET_TOKEN") or config_data["cachet"]["token"]
-        api_url = os.environ.get("CACHET_API_URL") or config_data["cachet"]["api_url"]
-        configuration = Configuration(config_data, endpoint_index, CachetClient(api_url, token), webhooks)
+        configuration = Configuration(config_data, endpoint_index, client, webhooks)
         NewThread(
             Scheduler(configuration, build_agent(configuration, logging.getLogger("cachet_url_monitor.scheduler")))
         ).start()
