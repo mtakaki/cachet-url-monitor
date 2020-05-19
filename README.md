@@ -64,7 +64,11 @@ endpoints:
     frequency: 5
 cachet:
   api_url: http://status.cachethq.io/api/v1
-  token: mytoken
+  token:
+    - type: ENVIRONMENT_VARIABLE
+      value: CACHET_TOKEN
+    - type: TOKEN
+      value: my_token
 webhooks:
   - url: "https://push.example.com/message?token=<apptoken>"
     params:
@@ -107,7 +111,11 @@ messages:
     - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
 - **cachet**, this is the settings for our cachet server.
     - **api_url**, the cachet API endpoint. *mandatory*
-    - **token**, the API token. *mandatory*
+    - **token**, the API token. It can either be a string (backwards compatible with old configuration) or a list of
+     token providers. It will read in the specified order and fallback to the next option if no token could be found
+     . (since 0.6.10) *mandatory*
+        - **ENVIRONMENT_VARIABLE**, it will read the token from the specified environment variable.
+        - **TOKEN**, it's a string and it will be read directly from the configuration.
 - **webhooks**, generic webhooks to be notified about incident updates
     - **url**, webhook URL, will be interpolated
     - **params**, POST parameters, will be interpolated
