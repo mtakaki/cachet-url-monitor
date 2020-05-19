@@ -10,7 +10,7 @@ setup(
     url="https://github.com/mtakaki/cachet-url-monitor",
     packages=find_packages(),
     license="MIT",
-    requires=["requests", "PyYAML", "Click"],
+    requires=["requests", "PyYAML", "Click", "boto3"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "requests-mock"],
 )
