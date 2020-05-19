@@ -67,6 +67,9 @@ cachet:
   token:
     - type: ENVIRONMENT_VARIABLE
       value: CACHET_TOKEN
+    - type: AWS_SECRETS_MANAGER
+      secret_name: cachethq_token
+      region: us-west-2
     - type: TOKEN
       value: my_token
 webhooks:
@@ -116,6 +119,11 @@ messages:
      . (since 0.6.10) *mandatory*
         - **ENVIRONMENT_VARIABLE**, it will read the token from the specified environment variable.
         - **TOKEN**, it's a string and it will be read directly from the configuration.
+        - **AWS_SECRETS_MANAGER**, it will attempt reading the token from
+        [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/). It requires setting up the AWS credentials
+         into the docker container. More instructions below. It takes these parameters:
+            - **secret_name**, the name of the secret under which the token is stored.
+            - **region**, the AWS region.
 - **webhooks**, generic webhooks to be notified about incident updates
     - **url**, webhook URL, will be interpolated
     - **params**, POST parameters, will be interpolated
@@ -145,6 +153,14 @@ Following parameters are available in webhook interpolation
 | --------- | ----------- |
 | `{title}` | Event title, includes endpoint name and short status |
 | `{message}` | Event message, same as sent to Cachet |
+
+### AWS Secrets Manager
+This tools can integrate with AWS Secrets Manager, where the token is fetched directly from the service. In order to
+ get this functionality working, you will need to setup the AWS credentials into the container. The easiest way would
+  be setting the environment variables:
+```bash
+$ docker run --rm -it -e AWS_ACCESS_KEY_ID=xyz -e AWS_SECRET_ACCESS_KEY=aaa -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor
+```
 
 ## Setting up
 
