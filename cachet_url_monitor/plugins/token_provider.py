@@ -59,8 +59,6 @@ class AwsSecretsManagerTokenProvider(TokenProvider):
             elif e.response["Error"]["Code"] == "InvalidParameterException":
                 raise AwsSecretsManagerTokenRetrievalException("The request had invalid params")
         else:
-            # Secrets Manager decrypts the secret value using the associated KMS CMK
-            # Depending on whether the secret was a string or binary, only one of these fields will be populated
             if "SecretString" in get_secret_value_response:
                 return get_secret_value_response["SecretString"]
             else:
