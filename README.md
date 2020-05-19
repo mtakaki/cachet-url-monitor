@@ -68,7 +68,8 @@ cachet:
     - type: ENVIRONMENT_VARIABLE
       value: CACHET_TOKEN
     - type: AWS_SECRETS_MANAGER
-      secret_name: cachethq_token
+      secret_name: cachethq
+      secret_key: token
       region: us-west-2
     - type: TOKEN
       value: my_token
@@ -122,7 +123,8 @@ messages:
         - **AWS_SECRETS_MANAGER**, it will attempt reading the token from
         [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/). It requires setting up the AWS credentials
          into the docker container. More instructions below. It takes these parameters:
-            - **secret_name**, the name of the secret under which the token is stored.
+            - **secret_name**, the name of the secret.
+            - **secret_key**, the key under which the token is stored.
             - **region**, the AWS region.
 - **webhooks**, generic webhooks to be notified about incident updates
     - **url**, webhook URL, will be interpolated

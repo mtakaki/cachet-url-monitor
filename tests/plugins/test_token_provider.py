@@ -87,8 +87,10 @@ def test_get_token_string_configuration():
 
 
 def test_get_aws_secrets_manager(mock_boto3):
-    mock_boto3.get_secret_value.return_value = {"SecretString": "my_token"}
-    token = get_token([{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2"}])
+    mock_boto3.get_secret_value.return_value = {"SecretString": '{"token": "my_token"}'}
+    token = get_token(
+        [{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2", "secret_key": "token"}]
+    )
     assert token == "my_token"
     mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")
 
@@ -96,7 +98,9 @@ def test_get_aws_secrets_manager(mock_boto3):
 def test_get_aws_secrets_manager_binary_secret(mock_boto3):
     mock_boto3.get_secret_value.return_value = {"binary": "it_will_fail"}
     with pytest.raises(AwsSecretsManagerTokenRetrievalException):
-        get_token([{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2"}])
+        get_token(
+            [{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2", "secret_key": "token"}]
+        )
     mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")
 
 
@@ -105,7 +109,9 @@ def test_get_aws_secrets_manager_resource_not_found_exception(mock_boto3):
         error_response={"Error": {"Code": "ResourceNotFoundException"}}, operation_name="get_secret_value"
     )
     with pytest.raises(AwsSecretsManagerTokenRetrievalException):
-        get_token([{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2"}])
+        get_token(
+            [{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2", "secret_key": "token"}]
+        )
     mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")
 
 
@@ -114,7 +120,9 @@ def test_get_aws_secrets_manager_invalid_request_exception(mock_boto3):
         error_response={"Error": {"Code": "InvalidRequestException"}}, operation_name="get_secret_value"
     )
     with pytest.raises(AwsSecretsManagerTokenRetrievalException):
-        get_token([{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2"}])
+        get_token(
+            [{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2", "secret_key": "token"}]
+        )
     mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")
 
 
@@ -123,5 +131,7 @@ def test_get_aws_secrets_manager_invalid_parameter_exception(mock_boto3):
         error_response={"Error": {"Code": "InvalidParameterException"}}, operation_name="get_secret_value"
     )
     with pytest.raises(AwsSecretsManagerTokenRetrievalException):
-        get_token([{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2"}])
+        get_token(
+            [{"secret_name": "hq_token", "type": "AWS_SECRETS_MANAGER", "region": "us-west-2", "secret_key": "token"}]
+        )
     mock_boto3.get_secret_value.assert_called_with(SecretId="hq_token")

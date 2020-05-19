@@ -1,9 +1,10 @@
+import json
+import os
 from typing import Any
 from typing import Dict
 from typing import Optional
 
 from boto3.session import Session
-import os
 from botocore.exceptions import ClientError
 
 
@@ -45,6 +46,7 @@ class AwsSecretsManagerTokenProvider(TokenProvider):
     def __init__(self, config_data: Dict[str, Any]):
         self.secret_name = config_data["secret_name"]
         self.region = config_data["region"]
+        self.secret_key = config_data["secret_key"]
 
     def get_token(self) -> Optional[str]:
         session = Session()
@@ -60,7 +62,11 @@ class AwsSecretsManagerTokenProvider(TokenProvider):
                 raise AwsSecretsManagerTokenRetrievalException("The request had invalid params")
         else:
             if "SecretString" in get_secret_value_response:
-                return get_secret_value_response["SecretString"]
+                secret = json.loads(get_secret_value_response["SecretString"])
+                try:
+                    return secret[self.secret_key]
+                except KeyError:
+                    raise AwsSecretsManagerTokenRetrievalException(f"Invalid secret_key parameter: {self.secret_key}")
             else:
                 raise AwsSecretsManagerTokenRetrievalException(
                     "Invalid secret format. It should be a SecretString, instead of binary."
