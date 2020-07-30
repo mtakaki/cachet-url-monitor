@@ -158,7 +158,12 @@ class Configuration(object):
         """
         try:
             if self.endpoint_header is not None:
-                self.request = requests.request(
+                if "insecure" in self.endpoint_header:
+                    self.request = requests.request(
+                    self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header, verify=False
+                )
+                else:
+                    self.request = requests.request(
                     self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header
                 )
             else:
