@@ -2,7 +2,7 @@
 [![CircleCI](https://circleci.com/gh/mtakaki/cachet-url-monitor/tree/master.svg?style=svg)](https://circleci.com/gh/mtakaki/cachet-url-monitor/tree/master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/cachet-url-monitor/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/cachet-url-monitor?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7ef4123130ef4140b8ea7b94d460ba64)](https://www.codacy.com/app/mitsuotakaki/cachet-url-monitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mtakaki/cachet-url-monitor&amp;utm_campaign=Badge_Grade)
-[![Docker pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
+![Docker Pulls](https://img.shields.io/docker/pulls/mtakaki/cachet-url-monitor)
 [![Docker stars](https://img.shields.io/docker/stars/mtakaki/cachet-url-monitor.svg)](https://hub.docker.com/r/mtakaki/cachet-url-monitor/)
 ![License](https://img.shields.io/github/license/mtakaki/cachet-url-monitor.svg)
 [![Latest release](https://img.shields.io/pypi/v/cachet-url-monitor.svg)](https://pypi.python.org/pypi/cachet-url-monitor)
@@ -202,6 +202,10 @@ If you're going to use a file with a name other than `config.yml`, you will need
 ```bash
 $ docker run --rm -it -v "$PWD"/my_config.yml:/usr/src/app/config/config.yml:ro mtakaki/cachet-url-monitor
 ```
+
+### Docker compose
+
+Docker compose has been removed from this repo as it had a dependency on PostgreSQL and it slightly complicated how it works. This has been kindly handled on: https://github.com/boonisz/cachet-url-monitor-dc It facilitates spawning CachetHQ with its dependencies and cachet-url-monitor alongside to it.
 
 ## Generating configuration from existing CachetHQ instance (since 0.6.2)
 
