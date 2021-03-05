@@ -67,7 +67,7 @@ endpoints:
     method: GET
     header:
       SOME-HEADER: SOME-VALUE
-      insecure: 
+    insecure: true
     timeout: 1 # seconds
     expectation:
       - type: HTTP_STATUS
@@ -84,7 +84,7 @@ endpoints:
       - CREATE_INCIDENT
     public_incidents: true
     latency_unit: ms
-    frequency: 5    
+    frequency: 5
 cachet:
   api_url: http://status.cachethq.io/api/v1
   token:
@@ -114,7 +114,7 @@ messages:
     - **url**, the URL that is going to be monitored. *mandatory*
     - **method**, the HTTP method that will be used by the monitor. *mandatory*
     - **header**, client header passed to the request. Remove if you do not want to pass a header.
-      - **insecure**, for URLs which have self-singed/invalid SSL certs OR you wish to disable SSL check, use this header key. Do not need to provide any value, If header is present, SSL check is false. Default is true, if key not present. 
+    - **insecure**, for URLs which have self-singed/invalid SSL certs OR you wish to disable SSL check, use this key. Default is false, so by default we validate SSL certs.
     - **timeout**, how long we'll wait to consider the request failed. The unit of it is seconds. *mandatory*
     - **expectation**, the list of expectations set for the URL. *mandatory*
         - **HTTP_STATUS**, we will verify if the response status code falls into the expected range. Please keep in

@@ -157,8 +157,10 @@ class Configuration(object):
         according to the expectation results.
         """
         try:
-            if self.endpoint_header is not None:
-                if "insecure" in self.endpoint_header:
+            if self.endpoint_header is None:
+                self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
+            else:
+                if 'insecure' in self.endpoint and self.endpoint['insecure']:
                     self.request = requests.request(
                     self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header, verify=False
                 )
@@ -166,8 +168,7 @@ class Configuration(object):
                     self.request = requests.request(
                     self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header
                 )
-            else:
-                self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
+
             self.current_timestamp = int(time.time())
         except requests.ConnectionError:
             self.message = "The URL is unreachable: %s %s" % (self.endpoint_method, self.endpoint_url)
