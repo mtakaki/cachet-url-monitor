@@ -160,13 +160,9 @@ class Configuration(object):
             if self.endpoint_header is None:
                 self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
             else:
-                if 'insecure' in self.endpoint and self.endpoint['insecure']:
-                    self.request = requests.request(
-                    self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header, verify=False
-                )
-                else:
-                    self.request = requests.request(
-                    self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header
+                self.request = requests.request(
+                    self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header,
+                    verify=not self.endpoint['insecure'] if 'insecure' in self.endpoint else True
                 )
 
             self.current_timestamp = int(time.time())
