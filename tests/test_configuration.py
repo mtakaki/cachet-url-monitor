@@ -63,6 +63,13 @@ def insecure_config_file():
 
 
 @pytest.fixture()
+def missing_name_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_missing_name.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
 def mock_logger_module():
     with mock.patch("cachet_url_monitor.configuration.logging") as _mock_logger:
         yield _mock_logger
@@ -124,6 +131,11 @@ def test_init_unknown_status(config_file, mock_client):
     configuration = Configuration(config_file, 0, mock_client)
 
     assert configuration.previous_status == cachet_url_monitor.status.ComponentStatus.UNKNOWN
+
+
+def test_init_missing_name(missing_name_config_file, mock_client):
+    with pytest.raises(cachet_url_monitor.configuration.ConfigurationValidationError):
+        Configuration(missing_name_config_file, 0, mock_client)
 
 
 def test_evaluate(configuration):
