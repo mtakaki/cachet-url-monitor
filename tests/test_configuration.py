@@ -28,6 +28,13 @@ def config_file():
 
 
 @pytest.fixture()
+def header_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_header.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
 def multiple_urls_config_file():
     with open(os.path.join(os.path.dirname(__file__), "configs/config_multiple_urls.yml"), "rt") as yaml_file:
         config_file_data = load(yaml_file, SafeLoader)
@@ -44,6 +51,34 @@ def invalid_config_file():
 @pytest.fixture()
 def webhooks_config_file():
     with open(os.path.join(os.path.dirname(__file__), "configs/config_webhooks.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
+def insecure_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_insecure.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
+def missing_name_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_missing_name.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
+def metric_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_metric.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
+
+@pytest.fixture()
+def missing_latency_unit_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_default_latency_unit.yml"), "rt") as yaml_file:
         config_file_data = load(yaml_file, SafeLoader)
         yield config_file_data
 
@@ -67,6 +102,16 @@ def configuration(config_file, mock_client, mock_logger):
 
 
 @pytest.fixture()
+def insecure_configuration(insecure_config_file, mock_client, mock_logger):
+    yield Configuration(insecure_config_file, 0, mock_client)
+
+
+@pytest.fixture()
+def header_configuration(header_config_file, mock_client, mock_logger):
+    yield Configuration(header_config_file, 0, mock_client)
+
+
+@pytest.fixture()
 def webhooks_configuration(webhooks_config_file, mock_client, mock_logger):
     webhooks = []
     for webhook in webhooks_config_file.get("webhooks", []):
@@ -82,11 +127,23 @@ def multiple_urls_configuration(multiple_urls_config_file, mock_client, mock_log
     ]
 
 
-def test_init(configuration):
+def test_init(configuration, mock_client):
     assert len(configuration.data) == 2, "Number of root elements in config.yml is incorrect"
     assert len(configuration.expectations) == 3, "Number of expectations read from file is incorrect"
-    assert configuration.endpoint_header == {"SOME-HEADER": "SOME-VALUE"}, "Header is incorrect"
     assert configuration.latency_unit == "ms"
+    mock_client.get_default_metric_value.assert_not_called()
+
+
+def test_init_with_header(header_configuration):
+    assert len(header_configuration.data) == 2, "Number of root elements in config.yml is incorrect"
+    assert len(header_configuration.expectations) == 3, "Number of expectations read from file is incorrect"
+    assert header_configuration.endpoint_header == {"SOME-HEADER": "SOME-VALUE"}, "Header is incorrect"
+    assert header_configuration.latency_unit == "ms"
+
+
+def test_init_missing_latency_unit(missing_latency_unit_config_file, mock_client):
+    configuration = Configuration(missing_latency_unit_config_file, 0, mock_client)
+    assert configuration.latency_unit == "s"
 
 
 def test_init_unknown_status(config_file, mock_client):
@@ -94,6 +151,21 @@ def test_init_unknown_status(config_file, mock_client):
     configuration = Configuration(config_file, 0, mock_client)
 
     assert configuration.previous_status == cachet_url_monitor.status.ComponentStatus.UNKNOWN
+
+
+def test_init_missing_name(missing_name_config_file, mock_client):
+    with pytest.raises(cachet_url_monitor.configuration.ConfigurationValidationError):
+        Configuration(missing_name_config_file, 0, mock_client)
+
+
+def test_init_with_metric_id(metric_config_file, mock_client):
+    mock_client.get_default_metric_value.return_value = 0.456
+    configuration = Configuration(metric_config_file, 0, mock_client)
+
+    assert (
+        configuration.default_metric_value == 0.456
+    ), "Default metric was not set during init"
+    mock_client.get_default_metric_value.assert_called_once_with(3)
 
 
 def test_evaluate(configuration):
@@ -104,6 +176,22 @@ def test_evaluate(configuration):
         assert (
             configuration.status == cachet_url_monitor.status.ComponentStatus.OPERATIONAL
         ), "Component status set incorrectly"
+        assert (
+            m.last_request.verify == True
+        )
+
+
+def test_evaluate_insecure(insecure_configuration):
+    with requests_mock.mock() as m:
+        m.get("http://localhost:8080/swagger", text="<body>")
+        insecure_configuration.evaluate()
+
+        assert (
+            insecure_configuration.status == cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        ), "Component status set incorrectly"
+        assert (
+            m.last_request.verify == False
+        )
 
 
 def test_evaluate_without_header(configuration):
@@ -113,6 +201,16 @@ def test_evaluate_without_header(configuration):
 
         assert (
             configuration.status == cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        ), "Component status set incorrectly"
+
+
+def test_evaluate_with_header(header_configuration):
+    with requests_mock.mock() as m:
+        m.get("http://localhost:8080/swagger", text="<body>", headers={'SOME-HEADER': 'SOME-VALUE'})
+        header_configuration.evaluate()
+
+        assert (
+            header_configuration.status == cachet_url_monitor.status.ComponentStatus.OPERATIONAL
         ), "Component status set incorrectly"
 
 

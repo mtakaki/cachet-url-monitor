@@ -62,6 +62,22 @@ endpoints:
     public_incidents: true
     latency_unit: ms
     frequency: 5
+  - name: Insecure-site
+    url: https://www.Insecure-site-internal.com
+    method: GET
+    header:
+      SOME-HEADER: SOME-VALUE
+    insecure: true
+    timeout: 1 # seconds
+    expectation:
+      - type: HTTP_STATUS
+        status_range: 200-205
+    allowed_fails: 0
+    component_id: 2
+    action:
+      - CREATE_INCIDENT
+    public_incidents: true
+    frequency: 5
 cachet:
   api_url: http://status.cachethq.io/api/v1
   token:
@@ -91,6 +107,7 @@ messages:
     - **url**, the URL that is going to be monitored. *mandatory*
     - **method**, the HTTP method that will be used by the monitor. *mandatory*
     - **header**, client header passed to the request. Remove if you do not want to pass a header.
+    - **insecure**, for URLs which have self-singed/invalid SSL certs OR you wish to disable SSL check, use this key. Default is false, so by default we validate SSL certs.
     - **timeout**, how long we'll wait to consider the request failed. The unit of it is seconds. *mandatory*
     - **expectation**, the list of expectations set for the URL. *mandatory*
         - **HTTP_STATUS**, we will verify if the response status code falls into the expected range. Please keep in

@@ -19,6 +19,7 @@ endpoints:
     public_incidents: true
     latency_unit: ms
     frequency: 30
+    metric_id: 3
 cachet:
   api_url: https://demo.cachethq.io/api/v1
   token: my_token
