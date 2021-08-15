@@ -2,6 +2,7 @@
 import copy
 import logging
 import time
+import re
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -15,6 +16,7 @@ from cachet_url_monitor.exceptions import ConfigurationValidationError
 from cachet_url_monitor.expectation import Expectation
 from cachet_url_monitor.status import ComponentStatus
 from cachet_url_monitor.webhook import Webhook
+from cachet_url_monitor import latency_unit
 
 # This is the mandatory fields that must be in the configuration file in this
 # same exact structure.
@@ -113,6 +115,8 @@ class Configuration(object):
         self.expectations = [Expectation.create(expectation) for expectation in self.endpoint["expectation"]]
         for expectation in self.expectations:
             self.logger.info("Registered expectation: %s" % (expectation,))
+
+        self.measure = self.endpoint.get("measure") or None
 
     def get_incident_title(self):
         """Generates incident title for current status."""
@@ -255,13 +259,24 @@ class Configuration(object):
         In case of failed connection trial pushes the default metric value.
         """
         if self.metric_id and hasattr(self, "request"):
+            value = 0
+            if self.measure and self.measure["regex"]:
+                match = re.search(self.measure["regex"], self.request.text, re.UNICODE + re.DOTALL)
+                if match:
+                    try:
+                        value = float(match.group(1))
+                    except ValueError as e:
+                        self.logger.warning("Matched regex measure is not a number: %s" % str(e))
+            else:
+                value = latency_unit.convert_to_unit(self.latency_unit, self.request.elapsed.total_seconds())
+
             # We convert the elapsed time from the request, in seconds, to the configured unit.
             metrics_request = self.client.push_metrics(
-                self.metric_id, self.latency_unit, self.request.elapsed.total_seconds(), self.current_timestamp
+                self.metric_id, value, self.current_timestamp
             )
             if metrics_request.ok:
                 # Successful metrics upload
-                self.logger.info("Metric uploaded: %.6f %s" % (self.request.elapsed.total_seconds(), self.latency_unit))
+                self.logger.info("Metric uploaded: %.6f" % value)
             else:
                 self.logger.warning(f"Metric upload failed with status [{metrics_request.status_code}]")
 

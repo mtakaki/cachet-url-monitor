@@ -130,6 +130,8 @@ messages:
     - **latency_unit**, the latency unit used when reporting the metrics. It will automatically convert to the
      specified unit. It's not mandatory and it will default to **seconds**. Available units: `ms`, `s`, `m`, `h`.
     - **frequency**, how often we'll send a request to the given URL. The unit is in seconds.
+    - **measure**, which thing we use to measure the metric value
+        - **regex**, the regex pattern to extract metric value from body, the first matched group will be used for metric value. Ex: `value=([0-9.]+)`
 - **cachet**, this is the settings for our cachet server.
     - **api_url**, the cachet API endpoint. *mandatory*
     - **token**, the API token. It can either be a string (backwards compatible with old configuration) or a list of
