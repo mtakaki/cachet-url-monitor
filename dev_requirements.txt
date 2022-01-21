@@ -2,7 +2,7 @@ codacy-coverage==1.3.11
 coverage==5.0.3
 coveralls==1.10.0
 flake8==3.8.1
-ipython==7.11.1
+ipython==7.16.3
 mock==3.0.5
 pudb==2019.2
 pytest==5.3.5
