@@ -228,10 +228,10 @@ class Configuration(object):
             self.trigger_update = False
             return
 
-        self.previous_status = self.status
-
         if not self.trigger_update:
             return
+
+        self.previous_status = self.status
 
         api_component_status = self.client.get_component_status(self.component_id)
 
