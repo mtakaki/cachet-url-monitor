@@ -50,6 +50,7 @@ class Configuration(object):
     endpoint_url: str
     endpoint_timeout: int
     endpoint_header: Dict[str, str]
+    endpoint_data: str
 
     allowed_fails: int
     component_id: int
@@ -91,6 +92,7 @@ class Configuration(object):
         self.endpoint_timeout = self.endpoint.get("timeout") or 1
         self.endpoint_header = self.endpoint.get("header") or None
         self.allowed_fails = self.endpoint.get("allowed_fails") or 0
+        self.endpoint_data = self.endpoint.get("data") or None
 
         self.component_id = self.endpoint["component_id"]
         self.metric_id = self.endpoint.get("metric_id")
@@ -158,11 +160,11 @@ class Configuration(object):
         """
         try:
             if self.endpoint_header is None:
-                self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout)
+                self.request = requests.request(self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, data=self.endpoint_data)
             else:
                 self.request = requests.request(
                     self.endpoint_method, self.endpoint_url, timeout=self.endpoint_timeout, headers=self.endpoint_header,
-                    verify=not self.endpoint['insecure'] if 'insecure' in self.endpoint else True
+                    verify=not self.endpoint['insecure'] if 'insecure' in self.endpoint else True, data=self.endpoint_data
                 )
 
             self.current_timestamp = int(time.time())

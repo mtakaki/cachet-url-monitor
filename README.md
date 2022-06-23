@@ -78,6 +78,29 @@ endpoints:
       - CREATE_INCIDENT
     public_incidents: true
     frequency: 5
+  - name: POST-API
+    url: http://www.example.com/api/login
+    method: POST
+    header:
+      Content-Type: application/json
+    data: '{ "username": "ping", "password": "pong"}'
+    timeout: 1 # seconds
+    expectation:
+      - type: HTTP_STATUS
+        status_range: 200-205
+        incident: MAJOR
+      - type: LATENCY
+        threshold: 1
+      - type: REGEX
+        regex: ".*token.*"
+        threshold: 10
+    allowed_fails: 0
+    component_id: 2
+    action:
+      - CREATE_INCIDENT
+    public_incidents: true
+    latency_unit: ms
+    frequency: 5
 cachet:
   api_url: http://status.cachethq.io/api/v1
   token:
