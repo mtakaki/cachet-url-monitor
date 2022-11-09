@@ -61,6 +61,12 @@ def insecure_config_file():
         config_file_data = load(yaml_file, SafeLoader)
         yield config_file_data
 
+@pytest.fixture()
+def insecure_noheader_config_file():
+    with open(os.path.join(os.path.dirname(__file__), "configs/config_insecure_without_header.yml"), "rt") as yaml_file:
+        config_file_data = load(yaml_file, SafeLoader)
+        yield config_file_data
+
 
 @pytest.fixture()
 def missing_name_config_file():
@@ -104,6 +110,11 @@ def configuration(config_file, mock_client, mock_logger):
 @pytest.fixture()
 def insecure_configuration(insecure_config_file, mock_client, mock_logger):
     yield Configuration(insecure_config_file, 0, mock_client)
+
+
+@pytest.fixture()
+def insecure_configuration_noheader(insecure_noheader_config_file, mock_client, mock_logger):
+    yield Configuration(insecure_noheader_config_file, 0, mock_client)
 
 
 @pytest.fixture()
@@ -188,6 +199,18 @@ def test_evaluate_insecure(insecure_configuration):
 
         assert (
             insecure_configuration.status == cachet_url_monitor.status.ComponentStatus.OPERATIONAL
+        ), "Component status set incorrectly"
+        assert (
+            m.last_request.verify == False
+        )
+
+def test_evaluate_insecure_noheader(insecure_configuration_noheader):
+    with requests_mock.mock() as m:
+        m.get("http://localhost:8080/swagger", text="<body>")
+        insecure_configuration_noheader.evaluate()
+
+        assert (
+            insecure_configuration_noheader.status == cachet_url_monitor.status.ComponentStatus.OPERATIONAL
         ), "Component status set incorrectly"
         assert (
             m.last_request.verify == False
