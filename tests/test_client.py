@@ -1,16 +1,46 @@
 #!/usr/bin/env python
 import unittest
 from typing import Dict, List
+import unittest.mock as mock # Standard library mock
 
 import requests_mock
+from click.testing import CliRunner # For testing Click CLI
 
-from cachet_url_monitor.client import CachetClient
-from cachet_url_monitor.exceptions import MetricNonexistentError
-from cachet_url_monitor.status import ComponentStatus
+from cachet_url_monitor.client import CachetClient, normalize_url, save_config, run_client # Added normalize_url, save_config, run_client
+from cachet_url_monitor.exceptions import MetricNonexistentError, ComponentNonexistentError # Added ComponentNonexistentError
+from cachet_url_monitor.status import ComponentStatus, IncidentStatus # Added IncidentStatus
+import cachet_url_monitor.latency_unit as latency_unit_module # For mocking latency_unit.convert_to_unit
 
 TOKEN: str = "token_123"
 CACHET_URL: str = "http://foo.localhost"
 JSON: Dict[str, List[Dict[str, int]]] = {"data": [{"id": 1}]}
+
+
+class TestNormalizeUrl(unittest.TestCase):
+    def test_normalize_url_with_http(self):
+        self.assertEqual(normalize_url("http://example.com"), "http://example.com")
+
+    def test_normalize_url_with_https(self):
+        self.assertEqual(normalize_url("https://example.com"), "https://example.com")
+
+    def test_normalize_url_no_schema(self):
+        self.assertEqual(normalize_url("example.com"), "http://example.com")
+
+    def test_normalize_url_mixed_case_schema(self):
+        self.assertEqual(normalize_url("HttP://example.com"), "HttP://example.com")
+
+
+class TestSaveConfig(unittest.TestCase):
+    @mock.patch("builtins.open", new_callable=mock.mock_open)
+    @mock.patch("cachet_url_monitor.client.dump") # Changed mock path here
+    def test_save_config_writes_to_file(self, mock_yaml_dump, mock_open_file):
+        config_map = {"key": "value"}
+        filename = "test_config.yml"
+        
+        save_config(config_map, filename)
+        
+        mock_open_file.assert_called_once_with(filename, "w")
+        mock_yaml_dump.assert_called_once_with(config_map, mock_open_file())
 
 
 class ClientTest(unittest.TestCase):

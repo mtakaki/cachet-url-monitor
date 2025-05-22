@@ -107,23 +107,58 @@ class NewThread(threading.Thread):
 
 
 def build_agent(configuration: Configuration, logger: logging.Logger):
-    actions: List[Decorator] = []
-    for action in configuration.get_action():
-        logger.info(f"Registering action {action}")
-        actions.append(ACTION_NAMES_DECORATOR_MAP[action]())
-    return Agent(configuration, decorators=actions)
+    agent: Agent = Agent(configuration)  # Start with a base Agent
+    
+    # The order of decoration matters if decorators depend on each other.
+    # Current decorators are independent, so order in get_action() is fine.
+    # If specific order is needed, sort or process configuration.get_action() here.
+    
+    processed_decorators: List[Decorator] = []
+
+    for action_name in configuration.get_action():
+        if action_name in ACTION_NAMES_DECORATOR_MAP:
+            decorator_class = ACTION_NAMES_DECORATOR_MAP[action_name]
+            logger.info(f"Wrapping agent with {decorator_class.__name__} for action {action_name}")
+            
+            # Create new decorator instance
+            current_decorator_instance = decorator_class()
+            # Set its configuration (if decorators need it directly, though usually they operate via the wrapped agent's config)
+            # current_decorator_instance.configuration = configuration # Generally not needed if they call methods on config via execute
+            
+            # The following line is if decorators had their own 'decorated_agent' attribute to form a chain
+            # current_decorator_instance.decorated_agent = agent 
+            # agent = current_decorator_instance # Update agent to be the new outermost decorator
+            
+            # Based on current Agent and Decorator structure:
+            # Agent takes a list of decorators to call in its execute method.
+            # Decorators don't wrap each other directly by holding a 'decorated_agent' reference.
+            # Instead, Agent iterates through a list of decorators.
+            processed_decorators.append(current_decorator_instance)
+        else:
+            logger.warning(f"Unknown action configured: {action_name}. Skipping.")
+            
+    # Update the agent's list of decorators
+    agent.decorators = processed_decorators
+    return agent
 
 
 def validate_config():
-    if "endpoints" not in config_data.keys():
-        fatal_error("Endpoints is a mandatory field")
+    # Ensure config_data is accessible; it's loaded in if __name__ == "__main__":
+    # For direct calls (like in tests), config_data needs to be pre-populated or mocked.
+    global config_data
+    if "endpoints" not in config_data or not isinstance(config_data.get("endpoints"), list):
+        fatal_error('The "endpoints" key is mandatory in the configuration file and must be a list.')
+        return
 
-    if config_data["endpoints"] is None:
-        fatal_error("Endpoints array can not be empty")
+    if "cachet" not in config_data or not isinstance(config_data.get("cachet"), dict):
+        fatal_error('The "cachet" key is mandatory in the configuration file and must be a dictionary.')
+        return
 
+    # If we reach here, config_data['cachet'] exists and is a dict.
     for key in cachet_mandatory_fields:
         if key not in config_data["cachet"]:
-            fatal_error("Missing cachet mandatory fields")
+            fatal_error(f'The "cachet.{key}" key is mandatory in the configuration file.')
+            return
 
 
 def fatal_error(message: str):
@@ -131,33 +166,49 @@ def fatal_error(message: str):
     sys.exit(1)
 
 
-if __name__ == "__main__":
+def main_logic(argv: List[str]):
+    global config_data  # Declare config_data as global to assign to it
     FORMAT = "%(levelname)9s [%(asctime)-15s] %(name)s - %(message)s"
     logging.basicConfig(format=FORMAT, level=logging.INFO)
     for handler in logging.root.handlers:
         handler.addFilter(logging.Filter("cachet_url_monitor"))
 
-    if len(sys.argv) <= 1:
+    if len(argv) <= 1:
         fatal_error("Missing configuration file argument")
-        sys.exit(1)
+        # fatal_error calls sys.exit, so no need to exit here explicitly for production
+        return # Return for testing purposes when fatal_error is mocked
 
     try:
-        config_data = load(open(sys.argv[1], "r"), SafeLoader)
+        # Use argv[1] for the config file path
+        config_file_path = argv[1]
+        config_data = load(open(config_file_path, "r"), SafeLoader)
     except FileNotFoundError:
-        fatal_error(f"File not found: {sys.argv[1]}")
-        sys.exit(1)
+        fatal_error(f"File not found: {config_file_path}")
+        return # Return for testing
 
-    validate_config()
+    validate_config() # This will use the global config_data
 
     webhooks: List[Webhook] = []
-    for webhook in config_data.get("webhooks", []):
-        webhooks.append(Webhook(webhook["url"], webhook.get("params", {})))
+    for webhook_conf in config_data.get("webhooks", []): # renamed webhook to webhook_conf
+        webhooks.append(Webhook(webhook_conf["url"], webhook_conf.get("params", {})))
 
     token: str = get_token(config_data["cachet"]["token"])
     api_url: str = os.environ.get("CACHET_API_URL") or config_data["cachet"]["api_url"]
     client: CachetClient = CachetClient(api_url, token)
+    
+    threads = [] # Keep track of threads for potential join in future, not strictly needed for current tests
     for endpoint_index in range(len(config_data["endpoints"])):
         configuration = Configuration(config_data, endpoint_index, client, webhooks)
-        NewThread(
-            Scheduler(configuration, build_agent(configuration, logging.getLogger("cachet_url_monitor.scheduler")))
-        ).start()
+        # Pass the specific logger to build_agent
+        agent_logger = logging.getLogger("cachet_url_monitor.scheduler.Agent") 
+        scheduler_instance = Scheduler(configuration, build_agent(configuration, agent_logger))
+        thread = NewThread(scheduler_instance)
+        thread.start()
+        threads.append(thread)
+    
+    # In a real daemon, we might want to join threads or have a main loop.
+    # For testing, starting them is enough to verify the logic.
+
+
+if __name__ == "__main__":
+    main_logic(sys.argv)
